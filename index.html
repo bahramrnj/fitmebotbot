@@ -85,7 +85,7 @@
         <div id="onboarding-view" class="hidden">
              <div class="card p-8 rounded-xl shadow-lg">
                 <h2 class="text-2xl font-bold mb-2 text-center text-white">تکمیل پروفایل</h2>
-                <p class="text-center text-slate-400 mb-6 text-sm">برای استفاده از برنامه، لطفا اطلاعات زیر را کامل کنید.</p>
+                <p class="text-center text-slate-400 mb-6 text-sm">خوش آمدید! برای استفاده از برنامه، لطفا اطلاعات زیر را کامل کنید.</p>
                 <div class="space-y-4">
                     <input type="number" id="onboarding-height-input" placeholder="قد (سانتی‌متر)" class="w-full p-3 border border-slate-600 rounded-lg bg-slate-900 text-white">
                     <input type="number" id="onboarding-weight-input" placeholder="وزن (کیلوگرم)" class="w-full p-3 border border-slate-600 rounded-lg bg-slate-900 text-white">
@@ -216,29 +216,26 @@
             showView('loading-view');
             const { data, error } = await db.from('profiles').select('*').eq('id', user.id).single();
             
-            if (error && error.code !== 'PGRST116') { // Ignore "No rows found" error
-                showToast(`خطا در بارگذاری پروفایل: ${error.message}`, 'bg-red-500');
-                await db.auth.signOut();
+            if (error) {
+                if (error.code === 'PGRST116') {
+                    showView('onboarding-view');
+                } else {
+                    showToast(`خطا در بارگذاری پروفایل: ${error.message}`, 'bg-red-500');
+                    await db.auth.signOut();
+                }
                 return;
             }
 
             if (data) {
                 currentUserData = data;
-                // If profile is created but lacks height/weight, it means onboarding was skipped/failed.
-                if (!data.profile_data || data.profile_data.height == null) {
+                if (!data.profile_data) {
                     showView('onboarding-view');
                 } else if (data.role === 'trainer') {
                     showTrainerDashboard();
                 } else {
                     showClientDashboard();
                 }
-            } else {
-                 // This case should not happen with the new flow, but as a fallback.
-                 // This means auth user exists but profile record does not.
-                 showView('auth-view');
-                 showToast('خطا: پروفایل شما یافت نشد، لطفا با پشتیبانی تماس بگیرید.', 'bg-red-600');
-                 await db.auth.signOut();
-            }
+            } 
         }
 
         async function handleAuthAction() {
@@ -255,7 +252,7 @@
                     return showToast('نام الزامی است.', 'bg-red-600');
                 }
 
-                const { data, error: signUpError } = await db.auth.signUp({ 
+                const { data, error } = await db.auth.signUp({ 
                     email, 
                     password,
                     options: {
@@ -266,19 +263,20 @@
                     }
                 });
 
-                if (signUpError) {
+                if (error) {
                     showView('auth-view');
-                    return showToast(`خطا در ثبت نام: ${signUpError.message}`, 'bg-red-600');
+                    return showToast(`خطا در ثبت نام: ${error.message}`, 'bg-red-600');
                 }
-
-                // IMPORTANT: The RLS policy for profiles requires a function to copy metadata to the table.
-                // The client-side insert was violating RLS. The correct approach is a DB function.
-                // Since that is complex, we will rely on the user to complete onboarding after first login.
                 
-                showToast('ثبت نام موفق بود! لطفا ایمیل خود را تایید کنید و سپس وارد شوید.', 'bg-green-600');
-                document.getElementById('password-input').value = '';
-                document.getElementById('toggle-auth-mode-btn').click(); 
-                showView('auth-view');
+                if(data.user) {
+                    showToast('ثبت نام موفق بود! لطفا ایمیل خود را تایید کنید و سپس وارد شوید.', 'bg-green-600');
+                    document.getElementById('password-input').value = '';
+                    document.getElementById('toggle-auth-mode-btn').click(); 
+                    showView('auth-view');
+                } else {
+                    showToast('خطایی در ثبت نام رخ داد. لطفا دوباره تلاش کنید.', 'bg-red-600');
+                    showView('auth-view');
+                }
 
             } else {
                 const { error } = await db.auth.signInWithPassword({ email, password });
@@ -556,9 +554,9 @@
             setupEventListeners();
             if (db) { 
                 db.auth.onAuthStateChange(async (event, session) => {
-                    if (event === 'SIGNED_IN') {
+                    if (session && session.user) {
                        await loadUserDashboard(session.user);
-                    } else if (event === 'SIGNED_OUT') {
+                    } else {
                         showView('auth-view');
                     }
                 });
@@ -568,4 +566,3 @@
     </script>
 </body>
 </html>
-
