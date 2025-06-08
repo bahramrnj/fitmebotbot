@@ -242,14 +242,18 @@
                     showView('auth-view');
                     return showToast(`خطا در ساخت پروفایل: ${profileError.message}`, 'bg-red-600');
                 }
-                // Auth listener will handle redirecting to the correct dashboard
+                
+                showToast('ثبت نام موفق بود! لطفا ایمیل خود را برای فعال‌سازی حساب کاربری تایید کنید.', 'bg-green-600');
+                document.getElementById('password-input').value = '';
+                document.getElementById('toggle-auth-mode-btn').click(); 
+                showView('auth-view');
+
             } else {
                 const { error } = await db.auth.signInWithPassword({ email, password });
                 if (error) {
                     showView('auth-view');
                     return showToast(`خطا در ورود: ${error.message}`, 'bg-red-600');
                 }
-                 // Auth listener will handle redirecting
             }
         }
         
@@ -511,4 +515,4 @@
         main();
     </script>
 </body>
-</html>
+</ht
