@@ -42,6 +42,10 @@
         input[type="date"]::-webkit-calendar-picker-indicator {
             filter: invert(1);
         }
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
     </style>
 </head>
 <body class="text-slate-200">
@@ -214,34 +218,54 @@
         
         async function loadUserDashboard(user) {
             showView('loading-view');
-            const { data, error } = await db.from('profiles').select('*').eq('id', user.id).single();
+            let profileData = null;
+            let attempts = 0;
             
-            if (error) {
-                if (error.code === 'PGRST116') {
-                    showView('onboarding-view');
-                } else {
+            // Retry mechanism to handle potential replication delay of the profile after signup
+            while (!profileData && attempts < 5) {
+                const { data, error } = await db.from('profiles').select('*').eq('id', user.id).single();
+                
+                if (data) {
+                    profileData = data;
+                    break;
+                }
+
+                if (error && error.code !== 'PGRST116') { // 'PGRST116' means "no rows found"
                     showToast(`خطا در بارگذاری پروفایل: ${error.message}`, 'bg-red-500');
                     await db.auth.signOut();
+                    return;
                 }
-                return;
+                
+                attempts++;
+                await new Promise(resolve => setTimeout(resolve, 500)); // Wait 500ms before retrying
             }
 
-            if (data) {
-                currentUserData = data;
-                if (!data.profile_data) {
+            if (profileData) {
+                currentUserData = profileData;
+                if (!currentUserData.profile_data) {
                     showView('onboarding-view');
-                } else if (data.role === 'trainer') {
+                } else if (currentUserData.role === 'trainer') {
                     showTrainerDashboard();
                 } else {
                     showClientDashboard();
                 }
-            } 
+            } else {
+                 showToast('خطا: پروفایل شما یافت نشد. لطفا دوباره وارد شوید یا با پشتیبانی تماس بگیرید.', 'bg-red-600');
+                 await db.auth.signOut();
+            }
         }
 
-        async function handleAuthAction() {
+        async function handleAuthAction(event) {
+            const btn = event.target;
+            btn.disabled = true;
+            
             const email = document.getElementById('email-input').value.trim();
             const password = document.getElementById('password-input').value.trim();
-            if (!email || !password) return showToast('ایمیل و رمز عبور الزامی است.', 'bg-red-600');
+            if (!email || !password) {
+                btn.disabled = false;
+                return showToast('ایمیل و رمز عبور الزامی است.', 'bg-red-600');
+            }
+            
             showView('loading-view');
 
             if (isRegisterMode) {
@@ -249,6 +273,7 @@
                 const role = document.getElementById('role-select').value;
                 if (!name) {
                     showView('auth-view');
+                    btn.disabled = false;
                     return showToast('نام الزامی است.', 'bg-red-600');
                 }
 
@@ -265,19 +290,16 @@
 
                 if (error) {
                     showView('auth-view');
+                    btn.disabled = false;
                     return showToast(`خطا در ثبت نام: ${error.message}`, 'bg-red-600');
                 }
                 
                 if(data.user) {
-                    showToast('ثبت نام موفق بود! لطفا ایمیل خود را تایید کنید و سپس وارد شوید.', 'bg-green-600');
+                    showToast('ثبت نام موفق بود! لطفا ایمیل خود را برای فعال‌سازی حساب کاربری تایید کنید و سپس وارد شوید.', 'bg-green-600');
                     document.getElementById('password-input').value = '';
                     document.getElementById('toggle-auth-mode-btn').click(); 
                     showView('auth-view');
-                } else {
-                    showToast('خطایی در ثبت نام رخ داد. لطفا دوباره تلاش کنید.', 'bg-red-600');
-                    showView('auth-view');
                 }
-
             } else {
                 const { error } = await db.auth.signInWithPassword({ email, password });
                 if (error) {
@@ -285,9 +307,13 @@
                     return showToast(`خطا در ورود: ${error.message}`, 'bg-red-600');
                 }
             }
+            btn.disabled = false;
         }
 
         async function handleOnboardingSubmit(user) {
+             const btn = document.getElementById('complete-onboarding-btn');
+             btn.disabled = true;
+
              const height = document.getElementById('onboarding-height-input').value.trim();
              const weight = document.getElementById('onboarding-weight-input').value.trim();
              const age = document.getElementById('onboarding-age-input').value.trim();
@@ -301,6 +327,7 @@
              } else {
                 await loadUserDashboard(user);
              }
+             btn.disabled = false;
         }
         
         async function showTrainerDashboard() {
