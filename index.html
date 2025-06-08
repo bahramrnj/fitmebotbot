@@ -59,22 +59,25 @@
             <p id="loading-text" class="mt-2">در حال بارگذاری...</p>
         </div>
 
-        <!-- Onboarding View (First Time User) -->
-        <div id="onboarding-view" class="hidden">
-             <div class="card p-8 rounded-xl shadow-lg">
-                <h2 class="text-2xl font-bold mb-2 text-center text-white">به FitPlan خوش آمدید!</h2>
-                <p class="text-center text-slate-400 mb-6 text-sm">برای شروع، لطفا اطلاعات زیر را کامل کنید.</p>
+        <!-- Auth View -->
+        <div id="auth-view" class="hidden">
+            <div class="card p-8 rounded-xl shadow-lg">
+                <h2 id="auth-title" class="text-2xl font-bold mb-6 text-center text-white">ورود به حساب کاربری</h2>
                 <div class="space-y-4">
-                    <input type="text" id="onboarding-name-input" placeholder="نام شما" class="w-full p-3 border border-slate-600 rounded-lg bg-slate-900 text-white focus:ring-2 focus:ring-blue-500">
-                    <select id="onboarding-role-select" class="w-full p-3 border border-slate-600 rounded-lg bg-slate-900 text-white focus:ring-2 focus:ring-blue-500">
-                        <option value="client">شاگرد هستم</option>
-                        <option value="trainer">مربی هستم</option>
-                    </select>
-                    <input type="number" id="onboarding-height-input" placeholder="قد (سانتی‌متر)" class="w-full p-3 border border-slate-600 rounded-lg bg-slate-900 text-white">
-                    <input type="number" id="onboarding-weight-input" placeholder="وزن (کیلوگرم)" class="w-full p-3 border border-slate-600 rounded-lg bg-slate-900 text-white">
-                    <input type="number" id="onboarding-age-input" placeholder="سن" class="w-full p-3 border border-slate-600 rounded-lg bg-slate-900 text-white">
-                    <button id="complete-onboarding-btn" class="w-full btn-primary text-white font-bold py-3 rounded-lg hover:opacity-90 transition-opacity">ذخیره و ورود</button>
+                    <input type="email" id="email-input" placeholder="ایمیل" autocomplete="email" class="w-full p-3 border border-slate-600 rounded-lg bg-slate-900 text-white focus:ring-2 focus:ring-blue-500">
+                    <input type="password" id="password-input" placeholder="رمز عبور (حداقل ۶ کاراکتر)" autocomplete="current-password" class="w-full p-3 border border-slate-600 rounded-lg bg-slate-900 text-white focus:ring-2 focus:ring-blue-500">
+                    
+                    <div id="register-fields" class="hidden space-y-4">
+                        <input type="text" id="name-input" placeholder="نام شما" class="w-full p-3 border border-slate-600 rounded-lg bg-slate-900 text-white">
+                        <select id="role-select" class="w-full p-3 border border-slate-600 rounded-lg bg-slate-900 text-white">
+                            <option value="client">شاگرد هستم</option>
+                            <option value="trainer">مربی هستم</option>
+                        </select>
+                    </div>
+
+                    <button id="auth-action-btn" class="w-full btn-primary text-white font-bold py-3 rounded-lg hover:opacity-90 transition-opacity">ورود</button>
                 </div>
+                <p class="text-center mt-4 text-sm"><span id="auth-prompt-text">حساب کاربری ندارید؟</span> <button id="toggle-auth-mode-btn" class="text-blue-400 hover:underline">ثبت نام کنید</button></p>
             </div>
         </div>
         
@@ -87,6 +90,7 @@
                  </div>
                  <div>
                     <button id="profile-btn" class="text-slate-400 hover:text-white" title="ویرایش پروفایل"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></button>
+                    <button id="logout-btn-client" class="text-slate-400 hover:text-red-500 ml-2" title="خروج"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg></button>
                 </div>
              </div>
              <div class="grid grid-cols-2 gap-4">
@@ -118,9 +122,6 @@
                  <h3 class="font-bold text-lg text-white">اتصال به مربی</h3>
                  <div><label class="text-sm text-slate-400">کد اتصال مربی</label><input type="text" id="client-trainer-code-input" placeholder="کدی که از مربی گرفته‌اید" class="w-full mt-1 p-2 border border-slate-600 rounded-lg bg-slate-900 text-white"></div>
                 <button id="save-profile-btn" class="w-full btn-secondary text-white font-bold py-2 rounded-lg mt-2">ذخیره پروفایل</button>
-                 <hr class="border-slate-700">
-                 <button id="reset-app-btn" class="w-full bg-red-800 text-white font-bold py-2 rounded-lg mt-2 hover:bg-red-700">ریست کامل برنامه (خروج)</button>
-
             </div>
         </div>
 
@@ -131,6 +132,7 @@
                     <h2 id="trainer-welcome-name" class="text-xl font-bold text-white"></h2>
                     <p id="trainer-code-display" class="text-sm text-slate-400 cursor-pointer" title="برای کپی کردن کلیک کنید"></p>
                 </div>
+                 <button id="logout-btn-trainer" class="text-slate-400 hover:text-red-500 ml-2" title="خروج"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg></button>
             </div>
              <div class="card p-6 rounded-xl">
                  <div class="flex justify-between items-center mb-4">
@@ -163,13 +165,8 @@
     <script type="module">
         const { createClient } = supabase;
 
-        // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        // !!                  مهم: اطلاعات Supabase                          !!
-        // !!    این اطلاعات را از بخش Project Settings -> API در کنسول        !!
-        // !!             Supabase خود دریافت و جایگزین کنید.                 !!
-        // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        const SUPABASE_URL = 'https://lsitdkehiqcexrugjmjj.supabase.co'; // <--- جایگزین شود
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxzaXRka2VoaXFjZXhydWdqbWpqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkzNzczNzksImV4cCI6MjA2NDk1MzM3OX0.pxY5gE85elOAYQYtt15nxej_ws4AiHv6L3P1XMxR6CA'; // <--- جایگزین شود
+        const SUPABASE_URL = 'YOUR_SUPABASE_URL'; 
+        const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
 
         let db;
         try {
@@ -187,11 +184,10 @@
             }
         }
         
-        // --- App State & Utils ---
         const WEEK_DAYS = ['شنبه', 'یکشنبه', 'دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنج‌شنبه', 'جمعه'];
         let currentUserData = null;
-        let currentUserId = null;
         let currentEditingClient = null;
+        let isRegisterMode = false;
 
         function showView(viewId) {
             document.querySelectorAll('#app-container > div:not(header)').forEach(v => v.classList.add('hidden'));
@@ -202,72 +198,61 @@
         function getPersianDayName(date) { return new Intl.DateTimeFormat('fa-IR', { weekday: 'long' }).format(date); }
         function formatDate(dateString) { return dateString ? new Date(dateString).toLocaleDateString('fa-IR', { year: 'numeric', month: 'long', day: 'numeric' }) : '-'; }
         
-        // --- User Identification (No Auth) ---
-        function getOrCreateUserId() {
-            let userId = localStorage.getItem('fitplan_uuid');
-            if (!userId) {
-                userId = crypto.randomUUID();
-                localStorage.setItem('fitplan_uuid', userId);
-            }
-            return userId;
-        }
-
-        // --- App Initialization ---
-        async function initializeApp() {
-            if (!db) return; // Stop if Supabase client failed to initialize
-
-            currentUserId = getOrCreateUserId();
-            
-            const { data, error } = await db.from('profiles').select('*').eq('id', currentUserId).single();
-
-            if (error && error.code !== 'PGRST116') { // PGRST116 means no rows found
-                console.error('Error fetching profile:', error);
-                showToast(`خطا در بارگذاری اطلاعات پروفایل: ${error.message}`, 'bg-red-500');
+        async function loadUserDashboard(user) {
+            showView('loading-view');
+            const { data, error } = await db.from('profiles').select('*').eq('id', user.id).single();
+            if (error) {
+                showToast(`خطا در بارگذاری پروفایل: ${error.message}`, 'bg-red-500');
+                await db.auth.signOut();
                 return;
             }
+            currentUserData = data;
+            if (data.role === 'trainer') showTrainerDashboard();
+            else showClientDashboard();
+        }
 
-            if (data) {
-                currentUserData = data;
-                if (currentUserData.role === 'trainer') {
-                    showTrainerDashboard();
-                } else {
-                    showClientDashboard();
+        async function handleAuthAction() {
+            const email = document.getElementById('email-input').value.trim();
+            const password = document.getElementById('password-input').value.trim();
+            if (!email || !password) return showToast('ایمیل و رمز عبور الزامی است.', 'bg-red-600');
+            showView('loading-view');
+
+            if (isRegisterMode) {
+                const name = document.getElementById('name-input').value.trim();
+                const role = document.getElementById('role-select').value;
+                if (!name) {
+                    showView('auth-view');
+                    return showToast('نام الزامی است.', 'bg-red-600');
                 }
+
+                const { data: { user }, error: signUpError } = await db.auth.signUp({ email, password });
+                if (signUpError) {
+                    showView('auth-view');
+                    return showToast(`خطا در ثبت نام: ${signUpError.message}`, 'bg-red-600');
+                }
+                
+                const profileData = {
+                    id: user.id, name, role,
+                    profile_data: {},
+                    streaks: { daily: 0, lastCompletedDate: null },
+                    trainer_code: role === 'trainer' ? `FIT-${Math.random().toString(36).substring(2, 8).toUpperCase()}` : null,
+                };
+                const { error: profileError } = await db.from('profiles').insert(profileData);
+                if (profileError) {
+                    showView('auth-view');
+                    return showToast(`خطا در ساخت پروفایل: ${profileError.message}`, 'bg-red-600');
+                }
+                // Auth listener will handle redirecting to the correct dashboard
             } else {
-                showView('onboarding-view');
+                const { error } = await db.auth.signInWithPassword({ email, password });
+                if (error) {
+                    showView('auth-view');
+                    return showToast(`خطا در ورود: ${error.message}`, 'bg-red-600');
+                }
+                 // Auth listener will handle redirecting
             }
         }
-
-        async function handleOnboarding() {
-            const name = document.getElementById('onboarding-name-input').value.trim();
-            const role = document.getElementById('onboarding-role-select').value;
-            const height = document.getElementById('onboarding-height-input').value.trim();
-            const weight = document.getElementById('onboarding-weight-input').value.trim();
-            const age = document.getElementById('onboarding-age-input').value.trim();
-
-            if (!name) return showToast('لطفا نام خود را وارد کنید.', 'bg-red-600');
-            
-            const newUser = {
-                id: currentUserId,
-                name, role,
-                profile_data: { height, weight, age },
-                streaks: { daily: 0, lastCompletedDate: null },
-                trainer_code: role === 'trainer' ? `FIT-${Math.random().toString(36).substring(2, 8).toUpperCase()}` : null,
-                linked_trainer_id: null
-            };
-            
-            const { error } = await db.from('profiles').insert(newUser);
-
-            if (error) {
-                console.error('Onboarding error:', error);
-                showToast(`خطا در ذخیره اطلاعات: ${error.message}`, 'bg-red-600');
-            } else {
-                currentUserData = newUser;
-                initializeApp();
-            }
-        }
-
-        // --- Trainer Logic ---
+        
         async function showTrainerDashboard() {
             showView('trainer-dashboard-view');
             document.getElementById('trainer-welcome-name').textContent = `مربی ${currentUserData.name}`;
@@ -283,38 +268,21 @@
         async function renderClientsList() {
              const clientListEl = document.getElementById('clients-list');
              clientListEl.innerHTML = `<p class="text-slate-500 text-center">در حال بارگذاری شاگردان...</p>`;
-
-             const { data: clients, error } = await db.from('profiles').select('*').eq('linked_trainer_id', currentUserId);
+             const { data: clients, error } = await db.from('profiles').select('id, name').eq('linked_trainer_id', currentUserData.id);
             
-             if(error) {
-                console.error("Error fetching clients:", error);
-                clientListEl.innerHTML = `<p class="text-red-500 text-center">خطا در دریافت لیست شاگردان.</p>`;
-                return;
-             }
-
-             if (clients.length === 0) {
-                clientListEl.innerHTML = `<p class="text-slate-500 text-center p-4">هنوز شاگردی به شما متصل نشده است. کد اتصال خود را در اختیار شاگردان قرار دهید تا از بخش پروفایل به شما متصل شوند.</p>`;
-                return;
-             }
+             if(error) return clientListEl.innerHTML = `<p class="text-red-500 text-center">خطا در دریافت لیست شاگردان.</p>`;
+             if (clients.length === 0) return clientListEl.innerHTML = `<p class="text-slate-500 text-center p-4">هنوز شاگردی به شما متصل نشده است.</p>`;
 
             const clientIds = clients.map(c => c.id);
             const { data: plans, error: plansError } = await db.from('workout_plans').select('*').in('client_id', clientIds);
-
-            if (plansError) {
-                 console.error("Error fetching plans:", plansError);
-                 clientListEl.innerHTML = `<p class="text-red-500 text-center">خطا در دریافت برنامه‌های شاگردان.</p>`;
-                 return;
-            }
-
+            if (plansError) return clientListEl.innerHTML = `<p class="text-red-500 text-center">خطا در دریافت برنامه‌های شاگردان.</p>`;
             const plansMap = new Map(plans.map(p => [p.client_id, p]));
 
              clientListEl.innerHTML = '';
              for(const client of clients) {
                 const plan = plansMap.get(client.id);
-
                 const clientEl = document.createElement('div');
                 clientEl.className = 'card p-3 space-y-2 cursor-pointer hover:bg-slate-700/50 transition-colors';
-                clientEl.dataset.clientId = client.id;
                 clientEl.innerHTML = `
                     <div class="flex justify-between items-center pointer-events-none">
                         <p class="font-bold text-white">${client.name}</p>
@@ -333,14 +301,13 @@
             currentEditingClient = client;
             const modal = document.getElementById('plan-modal');
             document.getElementById('plan-form').reset();
-            
-            const { data: plan, error } = await db.from('workout_plans').select('*').eq('client_id', client.id).single();
+            const { data: plan } = await db.from('workout_plans').select('*').eq('client_id', client.id).single();
 
             const scheduleContainer = document.getElementById('plan-weekly-schedule');
             scheduleContainer.innerHTML = WEEK_DAYS.map(day => `<div class="p-3 border border-slate-700 rounded-lg bg-slate-800/50 mb-4"><h4 class="text-md font-bold mb-2 text-white">${day}</h4><div class="space-y-2" data-day="${day}"></div><button type="button" class="add-exercise-btn mt-2 text-sm text-blue-400 hover:text-blue-300" data-day="${day}">+ افزودن تمرین</button></div>`).join('');
 
-            if (plan && plan.plan_data) {
-                const planData = plan.plan_data;
+            if (plan?.plan_data) {
+                const { plan_data: planData } = plan;
                 document.getElementById('plan-total-sessions').value = planData.totalSessions || '';
                 document.getElementById('plan-start-date').value = planData.startDate || '';
                 document.getElementById('plan-end-date').value = planData.endDate || '';
@@ -355,7 +322,7 @@
         function addExerciseInput(container, exercise = { name: '', sets: '', reps: '' }) {
             const exerciseNode = document.createElement('div');
             exerciseNode.className = 'exercise-item flex gap-2 items-center';
-            exerciseNode.innerHTML = `<input type="text" value="${exercise.name}" placeholder="نام تمرین" class="w-1/2 p-2 border border-slate-600 rounded bg-slate-900 text-white focus:ring-1 focus:ring-blue-500"><input type="text" value="${exercise.sets}" placeholder="ست" class="w-1/4 p-2 border border-slate-600 rounded bg-slate-900 text-white text-center focus:ring-1 focus:ring-blue-500"><input type="text" value="${exercise.reps}" placeholder="تکرار" class="w-1/4 p-2 border border-slate-600 rounded bg-slate-900 text-white text-center focus:ring-1 focus:ring-blue-500"><button type="button" class="remove-exercise-btn text-red-500 hover:text-red-400 p-1">✖</button>`;
+            exerciseNode.innerHTML = `<input type="text" value="${exercise.name}" placeholder="نام تمرین" class="w-1/2 p-2 border border-slate-600 rounded bg-slate-900 text-white"><input type="text" value="${exercise.sets}" placeholder="ست" class="w-1/4 p-2 border border-slate-600 rounded bg-slate-900 text-white text-center"><input type="text" value="${exercise.reps}" placeholder="تکرار" class="w-1/4 p-2 border border-slate-600 rounded bg-slate-900 text-white text-center"><button type="button" class="remove-exercise-btn text-red-500 hover:text-red-400 p-1">✖</button>`;
             container.appendChild(exerciseNode);
         }
         
@@ -363,7 +330,6 @@
             event.preventDefault();
             const clientId = currentEditingClient.id;
             const { data: existingPlan } = await db.from('workout_plans').select('plan_data').eq('client_id', clientId).single();
-
             const schedule = {};
             WEEK_DAYS.forEach(day => {
                 schedule[day] = Array.from(document.querySelectorAll(`#plan-weekly-schedule div[data-day="${day}"] .exercise-item`)).map(item => ({
@@ -373,7 +339,6 @@
                     done: false
                 })).filter(ex => ex.name);
             });
-
             const planData = {
                 totalSessions: parseInt(document.getElementById('plan-total-sessions').value) || 0,
                 startDate: document.getElementById('plan-start-date').value,
@@ -382,70 +347,44 @@
                 attendedDates: existingPlan?.plan_data?.attendedDates || [],
                 schedule
             };
-
-            const { error } = await db.from('workout_plans').upsert({ client_id: clientId, trainer_id: currentUserId, plan_data: planData }, { onConflict: 'client_id' });
-            
-            if (error) {
-                console.error("Save plan error:", error);
-                showToast(`خطا در ذخیره برنامه: ${error.message}`, 'bg-red-600');
-            } else {
-                 showToast('برنامه با موفقیت ذخیره شد!', 'bg-green-600');
-                 document.getElementById('plan-modal').classList.add('hidden');
-                 await renderClientsList();
-            }
+            const { error } = await db.from('workout_plans').upsert({ client_id: clientId, trainer_id: currentUserData.id, plan_data: planData }, { onConflict: 'client_id' });
+            if (error) return showToast(`خطا در ذخیره برنامه: ${error.message}`, 'bg-red-600');
+            showToast('برنامه با موفقیت ذخیره شد!', 'bg-green-600');
+            document.getElementById('plan-modal').classList.add('hidden');
+            await renderClientsList();
         }
 
-
-        // --- Client Logic ---
         async function showClientDashboard() {
             showView('client-dashboard-view');
             document.getElementById('client-welcome-name').textContent = `${currentUserData.name}، خوش آمدید!`;
             document.getElementById('today-date-string').textContent = `امروز ${getPersianDayName(new Date())}`;
-            
             await loadClientPlan();
-            
             checkAndResetStreak();
             renderStreakInfo();
             renderDailyWorkout();
-            
             const planData = currentUserData.plan?.plan_data;
             const sessionsLeft = (planData?.totalSessions || 0) - (planData?.attendedSessions || 0);
             document.getElementById('sessions-left-stat').textContent = currentUserData.plan ? (sessionsLeft >= 0 ? sessionsLeft : 0) : '-';
         }
 
         async function loadClientPlan() {
-            if (!currentUserData.linked_trainer_id) {
-                currentUserData.plan = null;
-                return;
-            }
-            const { data, error } = await db.from('workout_plans').select('*').eq('client_id', currentUserId).single();
-            if (error && error.code !== 'PGRST116') {
-                 console.error("Error fetching plan:", error);
-            }
+            if (!currentUserData.linked_trainer_id) { currentUserData.plan = null; return; }
+            const { data, error } = await db.from('workout_plans').select('*').eq('client_id', currentUserData.id).single();
+            if (error && error.code !== 'PGRST116') console.error("Error fetching plan:", error);
             currentUserData.plan = data;
         }
 
         function renderDailyWorkout() {
             const workoutList = document.getElementById('daily-workout-list');
             const planData = currentUserData.plan?.plan_data;
-
-            if (!planData || !planData.schedule) {
-                workoutList.innerHTML = `<p class="text-slate-400 text-center p-4">هنوز برنامه‌ای برای شما ثبت نشده است. در بخش پروفایل، با استفاده از کد مربی به او متصل شوید.</p>`;
-                return;
-            }
-            
+            if (!planData?.schedule) return workoutList.innerHTML = `<p class="text-slate-400 text-center p-4">هنوز برنامه‌ای برای شما ثبت نشده است.</p>`;
             const today = getPersianDayName(new Date());
             const todaysWorkout = planData.schedule[today] || [];
-            
-            if (todaysWorkout.length === 0) {
-                workoutList.innerHTML = `<div class="text-center p-4 rounded-lg bg-green-500/10 text-green-400">امروز روز استراحت است!</div>`;
-                return;
-            }
-            
+            if (todaysWorkout.length === 0) return workoutList.innerHTML = `<div class="text-center p-4 rounded-lg bg-green-500/10 text-green-400">امروز روز استراحت است!</div>`;
             workoutList.innerHTML = todaysWorkout.map((ex, i) => `
             <div class="card p-3 flex items-center justify-between transition ${ex.done ? 'opacity-50' : ''}">
                 <div><p class="font-semibold text-white">${ex.name}</p><p class="text-sm text-slate-400">${ex.sets} ست × ${ex.reps} تکرار</p></div>
-                <input type="checkbox" data-day="${today}" data-index="${i}" class="exercise-checkbox w-6 h-6 text-green-500 bg-slate-700 border-slate-600 rounded" ${ex.done ? 'checked' : ''}>
+                <input type="checkbox" data-day="${today}" data-index="${i}" class="exercise-checkbox w-6 h-6" ${ex.done ? 'checked' : ''}>
             </div>`).join('');
         }
 
@@ -456,31 +395,23 @@
         async function updateSessionAndStreak() {
              const todayStr = new Date().toISOString().split('T')[0];
              const planData = currentUserData.plan.plan_data;
-
              if (planData.attendedDates?.includes(todayStr)) return;
-             
-             planData.attendedDates = [...(planData.attendedDates || []), todayStr];
+             planData.attendedDates.push(todayStr);
              planData.attendedSessions = (planData.attendedSessions || 0) + 1;
              
-             const lastCompletedDate = currentUserData.streaks?.lastCompletedDate || null;
              let newStreakCount = 1;
-             if(lastCompletedDate) {
-                 const today = new Date();
-                 const yesterday = new Date(today);
-                 yesterday.setDate(today.getDate() - 1);
-                 if (lastCompletedDate === yesterday.toISOString().split('T')[0]) {
+             if(currentUserData.streaks?.lastCompletedDate) {
+                 const yesterday = new Date();
+                 yesterday.setDate(new Date().getDate() - 1);
+                 if (currentUserData.streaks.lastCompletedDate === yesterday.toISOString().split('T')[0]) {
                      newStreakCount = (currentUserData.streaks.daily || 0) + 1;
                  }
              }
-             
              currentUserData.streaks = { daily: newStreakCount, lastCompletedDate: todayStr };
              
-             // Update both user and plan in the database
-             const { error: userError } = await db.from('profiles').update({ streaks: currentUserData.streaks }).eq('id', currentUserId);
-             const { error: planError } = await db.from('workout_plans').update({ plan_data: planData }).eq('client_id', currentUserId);
+             await db.from('profiles').update({ streaks: currentUserData.streaks }).eq('id', currentUserData.id);
+             await db.from('workout_plans').update({ plan_data: planData }).eq('client_id', currentUserData.id);
              
-             if(userError || planError) console.error("Update error:", userError, planError);
-
              renderStreakInfo();
              showToast(`💪 دمت گرم! تمرین امروز کامل شد. زنجیره شما به ${newStreakCount} روز رسید!`, 'bg-green-600');
              showClientDashboard();
@@ -488,33 +419,22 @@
         
         async function checkAndResetStreak() {
             const streaks = currentUserData.streaks;
-            if (!streaks || !streaks.lastCompletedDate) return;
+            if (!streaks?.lastCompletedDate) return;
             const today = new Date();
-            const todayStr = today.toISOString().split('T')[0];
             const yesterday = new Date();
             yesterday.setDate(today.getDate() - 1);
-            const yesterdayStr = yesterday.toISOString().split('T')[0];
-
-            if (streaks.lastCompletedDate !== todayStr && streaks.lastCompletedDate !== yesterdayStr) {
+            if (streaks.lastCompletedDate !== today.toISOString().split('T')[0] && streaks.lastCompletedDate !== yesterday.toISOString().split('T')[0]) {
                 currentUserData.streaks.daily = 0;
-                await db.from('profiles').update({ streaks: currentUserData.streaks }).eq('id', currentUserId);
+                await db.from('profiles').update({ streaks: currentUserData.streaks }).eq('id', currentUserData.id);
             }
         }
 
         async function toggleExerciseStatus(e) {
             const { day, index } = e.target.dataset;
-            const isDone = e.target.checked;
-            
-            currentUserData.plan.plan_data.schedule[day][parseInt(index)].done = isDone;
-
-            const { error } = await db.from('workout_plans').update({ plan_data: currentUserData.plan.plan_data }).eq('client_id', currentUserId);
-            if (error) console.error("Error updating plan status:", error);
-            
-            if (currentUserData.plan.plan_data.schedule[day].every(ex => ex.done)) {
-                await updateSessionAndStreak();
-            } else {
-                 showClientDashboard();
-            }
+            currentUserData.plan.plan_data.schedule[day][parseInt(index)].done = e.target.checked;
+            await db.from('workout_plans').update({ plan_data: currentUserData.plan.plan_data }).eq('client_id', currentUserData.id);
+            if (currentUserData.plan.plan_data.schedule[day].every(ex => ex.done)) await updateSessionAndStreak();
+            else showClientDashboard();
         }
         
         function showClientProfile() {
@@ -534,68 +454,61 @@
                     age: document.getElementById('age-input').value.trim()
                 }
             };
-
             const trainerCode = document.getElementById('client-trainer-code-input').value.trim();
             if (trainerCode) {
                  const { data: trainer, error } = await db.from('profiles').select('id').eq('trainer_code', trainerCode).single();
-                 if(error || !trainer) {
-                    return showToast('کد مربی یافت نشد.', 'bg-red-600');
-                 }
+                 if(error || !trainer) return showToast('کد مربی یافت نشد.', 'bg-red-600');
                  updatedProfile.linked_trainer_id = trainer.id;
             } else {
                  updatedProfile.linked_trainer_id = null;
             }
-            
-            const { error } = await db.from('profiles').update(updatedProfile).eq('id', currentUserId);
-            if (error) {
-                console.error("Save profile error:", error);
-                showToast('خطا در ذخیره پروفایل.', 'bg-red-600');
-            } else {
-                 showToast('پروفایل با موفقیت ذخیره شد.', 'bg-green-600');
-                 // Refresh local data
-                 currentUserData = {...currentUserData, ...updatedProfile};
-                 showClientDashboard();
-            }
+            const { error } = await db.from('profiles').update(updatedProfile).eq('id', currentUserData.id);
+            if (error) return showToast('خطا در ذخیره پروفایل.', 'bg-red-600');
+            showToast('پروفایل با موفقیت ذخیره شد.', 'bg-green-600');
+            currentUserData = {...currentUserData, ...updatedProfile};
+            showClientDashboard();
         }
         
-        // --- Event Listeners Setup ---
         function setupEventListeners() {
-            document.getElementById('complete-onboarding-btn').addEventListener('click', handleOnboarding);
+            document.getElementById('toggle-auth-mode-btn').addEventListener('click', () => {
+                isRegisterMode = !isRegisterMode;
+                document.getElementById('auth-title').textContent = isRegisterMode ? 'ایجاد حساب کاربری' : 'ورود';
+                document.getElementById('auth-action-btn').textContent = isRegisterMode ? 'ثبت نام' : 'ورود';
+                document.getElementById('auth-prompt-text').textContent = isRegisterMode ? 'حساب دارید؟' : 'حساب ندارید؟';
+                document.getElementById('toggle-auth-mode-btn').textContent = isRegisterMode ? 'وارد شوید' : 'ثبت نام کنید';
+                document.getElementById('register-fields').classList.toggle('hidden', !isRegisterMode);
+            });
+            document.getElementById('auth-action-btn').addEventListener('click', handleAuthAction);
+            document.getElementById('logout-btn-client').addEventListener('click', () => db.auth.signOut());
+            document.getElementById('logout-btn-trainer').addEventListener('click', () => db.auth.signOut());
             document.getElementById('profile-btn').addEventListener('click', showClientProfile);
-            document.getElementById('back-to-dashboard-btn').addEventListener('click', () => initializeApp());
+            document.getElementById('back-to-dashboard-btn').addEventListener('click', () => {
+                if(currentUserData.role === 'trainer') showTrainerDashboard(); else showClientDashboard();
+            });
             document.getElementById('save-profile-btn').addEventListener('click', saveProfile);
-            document.getElementById('add-client-btn').remove(); // This button is removed as the flow is client-initiated now.
-
             document.getElementById('plan-form').addEventListener('submit', savePlan);
             document.getElementById('cancel-plan-btn').addEventListener('click', () => document.getElementById('plan-modal').classList.add('hidden'));
-            document.getElementById('reset-app-btn').addEventListener('click', () => {
-                if(confirm("آیا مطمئن هستید؟ تمام اطلاعات شما از این مرورگر پاک شده و برنامه از نو شروع می‌شود.")){
-                    localStorage.removeItem('fitplan_uuid');
-                    location.reload();
-                }
-            });
-            
             document.addEventListener('click', e => {
                 if (e.target.matches('.add-exercise-btn')) addExerciseInput(e.target.previousElementSibling);
                 if (e.target.matches('.remove-exercise-btn')) e.target.closest('.exercise-item').remove();
             });
-
-            document.addEventListener('change', e => {
-                 if (e.target.matches('.exercise-checkbox')) toggleExerciseStatus(e);
-            });
+            document.addEventListener('change', e => { if (e.target.matches('.exercise-checkbox')) toggleExerciseStatus(e); });
         }
 
-        // --- App Initialization ---
         function main() {
             showView('loading-view');
             setupEventListeners();
             if (db) { 
-                initializeApp();
+                db.auth.onAuthStateChange((event, session) => {
+                    if (session) {
+                        loadUserDashboard(session.user);
+                    } else {
+                        showView('auth-view');
+                    }
+                });
             }
         }
-
         main();
-
     </script>
 </body>
-</ht
+</html>
