@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>FitPlan - برنامه تمرینی حرفه‌ای</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Vazirmatn', sans-serif;
+            background-color: #0d1117;
+            color: #e6edf3;
+            background-image: linear-gradient(to bottom right, rgba(13, 17, 23, 0.95), rgba(22, 27, 34, 0.98)), url('https://placehold.co/1920x1080/0d1117/30363d.png?text=Workout');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+        }
+        .hidden { display: none; }
+        .toast {
+            position: fixed;
+            bottom: -100px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 12px 24px;
+            border-radius: 8px;
+            color: white;
+            z-index: 1000;
+            opacity: 0;
+            transition: all 0.4s ease-in-out;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        .toast.show { opacity: 1; bottom: 40px; }
+        .card {
+            background-color: rgba(22, 27, 34, 0.85);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .btn-primary { background: linear-gradient(to right, #1e6adf, #2b84ea); }
+        .btn-secondary { background: linear-gradient(to right, #2ea043, #38c172); }
+        input[type="date"]::-webkit-calendar-picker-indicator {
+            filter: invert(1);
+        }
+    </style>
+</head>
+<body class="text-slate-200">
+
+    <div id="app-container" class="container mx-auto p-4 max-w-lg min-h-screen flex flex-col justify-center">
+
+        <header id="app-header" class="text-center mb-6 flex items-center justify-center gap-3 hidden">
+              <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-400"><path d="M12 5C9.24 5 7 7.24 7 10v2c0 1.1.9 2 2 2h6c1.1 0 2-.9 2-2v-2c0-2.76-2.24-5-5-5z"></path><path d="M19 14v-2c0-1.1-.9-2-2-2"></path><path d="M5 12v2c0 1.1.9 2 2 2h2"></path><path d="M12 14v7"></path><path d="M9 21h6"></path></svg>
+              <h1 class="text-4xl font-bold text-white tracking-tight">FitPlan</h1>
+        </header>
+
+        <!-- Loading View -->
+        <div id="loading-view" class="text-center text-white py-10">
+            <svg class="animate-spin h-8 w-8 text-white mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+            <p class="mt-2">در حال بارگذاری اطلاعات از تلگرام...</p>
+        </div>
+
+        <!-- Onboarding View (First Time User) -->
+        <div id="onboarding-view" class="hidden">
+             <div class="card p-8 rounded-xl shadow-lg">
+                <h2 class="text-2xl font-bold mb-2 text-center text-white">به FitPlan خوش آمدید!</h2>
+                <p class="text-center text-slate-400 mb-6 text-sm">برای شروع، لطفا اطلاعات زیر را کامل کنید.</p>
+                <div class="space-y-4">
+                    <input type="text" id="onboarding-name-input" placeholder="نام شما" class="w-full p-3 border border-slate-600 rounded-lg bg-slate-900 text-white focus:ring-2 focus:ring-blue-500">
+                    <select id="onboarding-role-select" class="w-full p-3 border border-slate-600 rounded-lg bg-slate-900 text-white focus:ring-2 focus:ring-blue-500">
+                        <option value="client">شاگرد هستم</option>
+                        <option value="trainer">مربی هستم</option>
+                    </select>
+                    <input type="number" id="onboarding-height-input" placeholder="قد (سانتی‌متر)" class="w-full p-3 border border-slate-600 rounded-lg bg-slate-900 text-white focus:ring-2 focus:ring-blue-500">
+                    <input type="number" id="onboarding-weight-input" placeholder="وزن (کیلوگرم)" class="w-full p-3 border border-slate-600 rounded-lg bg-slate-900 text-white focus:ring-2 focus:ring-blue-500">
+                    <input type="number" id="onboarding-age-input" placeholder="سن" class="w-full p-3 border border-slate-600 rounded-lg bg-slate-900 text-white focus:ring-2 focus:ring-blue-500">
+                    <button id="complete-onboarding-btn" class="w-full btn-primary text-white font-bold py-3 rounded-lg hover:opacity-90 transition-opacity">ذخیره و ورود به اپلیکیشن</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Client Dashboard View -->
+        <div id="client-dashboard-view" class="hidden space-y-6">
+             <div class="card p-4 rounded-xl flex justify-between items-center">
+                 <div>
+                     <h2 id="client-welcome-name" class="text-xl font-bold text-white"></h2>
+                     <p id="today-date-string" class="text-sm text-slate-400"></p>
+                 </div>
+                 <button id="profile-btn" class="text-slate-400 hover:text-white"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></button>
+             </div>
+             <div class="grid grid-cols-2 gap-4">
+                 <div class="card p-4 rounded-xl text-center">
+                     <p class="text-3xl font-bold text-amber-400" id="daily-streak-stat">0</p>
+                     <p class="text-sm text-slate-400">🔥 زنجیره روزانه</p>
+                 </div>
+                  <div class="card p-4 rounded-xl text-center">
+                     <p class="text-3xl font-bold text-cyan-400" id="sessions-left-stat">-</p>
+                     <p class="text-sm text-slate-400">📅 جلسات باقی‌مانده</p>
+                 </div>
+             </div>
+             <a href="https://mazidipharmacy.com/product/prh-for-kat" target="_blank" class="block card rounded-xl p-4 text-center group hover:bg-slate-700/50 transition-colors">
+                 <h3 class="text-xl font-bold text-white">تخفیف ویژه محصولات کارن</h3>
+                 <p class="text-blue-400 text-sm mt-1">برای مشاهده کلیک کنید!</p>
+             </a>
+             <div class="card p-6 rounded-xl">
+                  <h3 class="text-xl font-bold mb-4 text-white">تمرینات امروز</h3>
+                  <div id="daily-workout-list" class="space-y-3"></div>
+             </div>
+        </div>
+        
+        <!-- Client Profile View -->
+        <div id="client-profile-view" class="hidden space-y-6">
+            <div class="flex justify-between items-center"><h2 class="text-2xl font-bold text-white">پروفایل من</h2><button id="back-to-dashboard-btn" class="text-sm text-blue-400 hover:underline">بازگشت</button></div>
+            <div class="card p-6 rounded-xl space-y-4">
+                 <h3 class="font-bold text-lg text-white">اطلاعات شخصی</h3>
+                 <div><label class="text-sm text-slate-400">قد (سانتی‌متر)</label><input type="number" id="height-input" placeholder="مثلا: 180" class="w-full mt-1 p-2 border border-slate-600 rounded-lg bg-slate-900 text-white"></div>
+                 <div><label class="text-sm text-slate-400">وزن (کیلوگرم)</label><input type="number" id="weight-input" placeholder="مثلا: 75" class="w-full mt-1 p-2 border border-slate-600 rounded-lg bg-slate-900 text-white"></div>
+                 <div><label class="text-sm text-slate-400">سن</label><input type="number" id="age-input" placeholder="مثلا: 25" class="w-full mt-1 p-2 border border-slate-600 rounded-lg bg-slate-900 text-white"></div>
+                 <hr class="border-slate-700">
+                 <h3 class="font-bold text-lg text-white">اتصال به مربی</h3>
+                 <div><label class="text-sm text-slate-400">کد مربی</label><input type="text" id="client-trainer-code-input" placeholder="کدی که از مربی گرفته‌اید" class="w-full mt-1 p-2 border border-slate-600 rounded-lg bg-slate-900 text-white"></div>
+                <button id="save-profile-btn" class="w-full btn-secondary text-white font-bold py-2 rounded-lg mt-2">ذخیره اطلاعات</button>
+            </div>
+        </div>
+
+        <!-- Trainer Dashboard View -->
+        <div id="trainer-dashboard-view" class="hidden space-y-6">
+            <div class="card p-4 rounded-xl flex justify-between items-center">
+                <div>
+                    <h2 id="trainer-welcome-name" class="text-xl font-bold text-white"></h2>
+                    <p id="trainer-code-display" class="text-sm text-slate-400"></p>
+                </div>
+            </div>
+             <div class="card p-6 rounded-xl">
+                 <div class="flex justify-between items-center mb-4"><h3 class="text-xl font-bold text-white">شاگردان من</h3></div>
+                 <div id="clients-list" class="space-y-3"></div>
+            </div>
+        </div>
+        
+        <!-- Plan Creation/Edit Modal -->
+        <div id="plan-modal" class="hidden fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-50 p-4">
+            <form id="plan-form" class="card rounded-xl p-6 w-full max-w-lg space-y-4 flex flex-col max-h-[90vh]">
+                <h3 id="plan-modal-title" class="text-xl font-bold text-white border-b border-slate-700 pb-3 flex-shrink-0">ایجاد / ویرایش دوره</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 flex-shrink-0">
+                    <input type="number" id="plan-total-sessions" placeholder="تعداد کل جلسات" class="p-3 border border-slate-600 rounded-lg bg-slate-900 text-white">
+                    <input type="date" id="plan-start-date" title="تاریخ شروع" class="p-3 border border-slate-600 rounded-lg bg-slate-900 text-white">
+                    <input type="date" id="plan-end-date" title="تاریخ پایان" class="p-3 border border-slate-600 rounded-lg bg-slate-900 text-white">
+                </div>
+                <div id="plan-weekly-schedule" class="flex-grow overflow-y-auto space-y-4 p-2 border-t border-b border-slate-700"></div>
+                <div class="flex gap-4 flex-shrink-0">
+                    <button id="cancel-plan-btn" type="button" class="w-1/2 bg-slate-600 text-white font-bold py-2 rounded-lg hover:bg-slate-700">لغو</button>
+                    <button id="save-plan-btn" type="submit" class="w-1/2 btn-primary text-white font-bold py-2 rounded-lg hover:opacity-90">ذخیره دوره</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="toast-notification" class="toast"></div>
+
+    <script type="module">
+        // Firebase Imports
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getFirestore, doc, setDoc, getDoc, updateDoc, collection, query, where, onSnapshot, serverTimestamp, getDocs, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- Config and Initialization ---
+        const tg = window.Telegram.WebApp;
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'fitplan-telegram-dev';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        
+        let db;
+        try {
+            const app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+        } catch (e) {
+            console.error("Firebase initialization failed:", e);
+            document.getElementById('loading-view').innerHTML = '<p class="text-red-500">خطا در اتصال به سرویس. لطفا صفحه را رفرش کنید.</p>';
+        }
+
+        // --- App State ---
+        const WEEK_DAYS = ['شنبه', 'یکشنبه', 'دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنج‌شنبه', 'جمعه'];
+        let currentUserData = null;
+        let currentUserId = null;
+        let currentEditingPlan = { clientId: null, planId: null };
+        let unsubscribeListeners = [];
+
+        // --- View Management & Utils ---
+        function showView(viewId) {
+            document.querySelectorAll('#app-container > div').forEach(v => {
+                v.classList.add('hidden');
+            });
+            const view = document.getElementById(viewId);
+            if (view) view.classList.remove('hidden');
+            
+            const header = document.getElementById('app-header');
+            if (viewId === 'loading-view' || viewId === 'onboarding-view') {
+                header.classList.add('hidden');
+            } else {
+                header.classList.remove('hidden');
+            }
+        }
+        function showToast(message, color = 'bg-slate-800') { const t = document.getElementById('toast-notification'); t.textContent = message; t.className = `toast show ${color}`; setTimeout(() => { t.className = 'toast'; }, 3500); }
+        function getPersianDayName(date) { return new Intl.DateTimeFormat('fa-IR', { weekday: 'long' }).format(date); }
+        function cleanupListeners() { unsubscribeListeners.forEach(unsub => unsub()); unsubscribeListeners = []; }
+        function formatDate(dateString) { return dateString ? new Date(dateString).toLocaleDateString('fa-IR', { year: 'numeric', month: 'long', day: 'numeric' }) : '-'; }
+        
+        // --- Firestore Path Helpers ---
+        const paths = {
+            user: (uid) => doc(db, 'artifacts', appId, 'users', uid),
+            usersCollection: () => collection(db, 'artifacts', appId, 'users'),
+            plan: (planId) => doc(db, 'artifacts', appId, 'public', 'data', 'workoutPlans', planId),
+            plansCollection: () => collection(db, 'artifacts', appId, 'public', 'data', 'workoutPlans'),
+            clientLink: (clientId) => doc(db, 'artifacts', appId, 'public', 'data', 'clientLinks', clientId),
+            clientLinksCollection: () => collection(db, 'artifacts', appId, 'public', 'data', 'clientLinks')
+        };
+
+        // --- User Identification & Onboarding ---
+        async function initializeUser() {
+            cleanupListeners();
+            if (!tg.initDataUnsafe || !tg.initDataUnsafe.user || !tg.initDataUnsafe.user.id) {
+                 document.getElementById('loading-view').innerHTML = '<p class="text-red-500 text-center p-4">اطلاعات کاربر تلگرام یافت نشد. لطفا مطمئن شوید اپلیکیشن را از داخل تلگرام اجرا کرده‌اید.</p>';
+                return;
+            }
+            
+            currentUserId = tg.initDataUnsafe.user.id.toString();
+            const userDocRef = paths.user(currentUserId);
+            const userDocSnap = await getDoc(userDocRef);
+
+            if (userDocSnap.exists()) {
+                currentUserData = { uid: currentUserId, ...userDocSnap.data() };
+                if (currentUserData.role === 'trainer') {
+                    showTrainerDashboard();
+                } else {
+                    showClientDashboard();
+                }
+            } else {
+                // New user, show onboarding screen.
+                const userName = tg.initDataUnsafe.user.first_name || '';
+                document.getElementById('onboarding-name-input').value = userName;
+                showView('onboarding-view');
+            }
+        }
+
+        async function handleOnboarding() {
+            const name = document.getElementById('onboarding-name-input').value.trim();
+            const role = document.getElementById('onboarding-role-select').value;
+            const height = document.getElementById('onboarding-height-input').value.trim();
+            const weight = document.getElementById('onboarding-weight-input').value.trim();
+            const age = document.getElementById('onboarding-age-input').value.trim();
+
+            if (!name) return showToast('لطفا نام خود را وارد کنید.', 'bg-red-600');
+            if (!role) return showToast('لطفا نقش خود را انتخاب کنید.', 'bg-red-600');
+
+            showView('loading-view');
+
+            const userData = {
+                name,
+                tgUsername: tg.initDataUnsafe.user.username || '',
+                role,
+                createdAt: serverTimestamp(),
+                profile: { height, weight, age },
+                streaks: { daily: 0, lastCompletedDate: null }
+            };
+
+            if (role === 'trainer') {
+                userData.trainerCode = `TR-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+            } else {
+                userData.linkedTrainerId = null;
+            }
+
+            try {
+                await setDoc(paths.user(currentUserId), userData);
+                currentUserData = { uid: currentUserId, ...userData }; // Update local state
+                if (role === 'trainer') {
+                    showTrainerDashboard();
+                } else {
+                    showClientDashboard();
+                }
+            } catch (error) {
+                console.error("Error creating user profile:", error);
+                showToast('خطا در ذخیره پروفایل اولیه.', 'bg-red-600');
+                showView('onboarding-view');
+            }
+        }
+        
+        // --- Trainer Logic ---
+        function showTrainerDashboard() {
+            showView('trainer-dashboard-view');
+            document.getElementById('trainer-welcome-name').textContent = `مربی ${currentUserData.name}`;
+            document.getElementById('trainer-code-display').textContent = `کد شما: ${currentUserData.trainerCode}`;
+            listenForClients();
+        }
+
+        function listenForClients() {
+            const q = query(paths.clientLinksCollection(), where('trainerId', '==', currentUserId));
+            const unsub = onSnapshot(q, (snapshot) => {
+                const clientListEl = document.getElementById('clients-list');
+                if (snapshot.empty) {
+                    clientListEl.innerHTML = `<p class="text-slate-500 text-center p-4">هنوز شاگردی با استفاده از کد شما متصل نشده است. کد خود را با شاگردان به اشتراک بگذارید.</p>`;
+                    return;
+                }
+                
+                clientListEl.innerHTML = ''; // Clear list before re-rendering
+                snapshot.docs.forEach(async linkDoc => {
+                    const linkData = linkDoc.data();
+                    const client = { 
+                        id: linkData.clientId, 
+                        name: linkData.clientName,
+                        tgUsername: linkData.tgUsername
+                    };
+                    const planQuery = query(paths.plansCollection(), where('clientId', '==', client.id), where('trainerId', '==', currentUserId));
+                    const planSnap = await getDocs(planQuery);
+                    const plan = planSnap.empty ? {} : { id: planSnap.docs[0].id, ...planSnap.docs[0].data() };
+
+                    const clientEl = document.createElement('div');
+                    clientEl.className = 'card p-3 space-y-2';
+                    clientEl.innerHTML = `
+                        <div class="flex justify-between items-center">
+                            <p class="font-bold text-white">${client.name} (@${client.tgUsername || 'N/A'})</p>
+                            <button data-client-id="${client.id}" data-client-name="${client.name}" class="edit-plan-btn text-sm text-blue-400 hover:underline">${plan.id ? 'ویرایش دوره' : 'ایجاد دوره'}</button>
+                        </div>
+                        <div class="flex justify-between items-center text-xs text-slate-400">
+                             <p>جلسات: <span class="font-mono">${plan.attendedSessions || 0}/${plan.totalSessions || '-'}</span></p>
+                             <p>پایان دوره: <span class="font-mono">${formatDate(plan.endDate)}</span></p>
+                             <label class="flex items-center gap-1 cursor-pointer">
+                                 پرداخت: <input type="checkbox" data-plan-id="${plan.id || ''}" class="payment-checkbox w-4 h-4" ${plan.paymentReceived ? 'checked' : ''} ${!plan.id ? 'disabled' : ''}>
+                             </label>
+                        </div>`;
+                    clientListEl.appendChild(clientEl);
+                });
+            }, (error) => {
+                console.error("Error listening for clients:", error);
+                showToast('خطا در دریافت لیست شاگردان.', 'bg-red-600');
+            });
+            unsubscribeListeners.push(unsub);
+        }
+
+        async function openPlanModal(client) {
+            const modal = document.getElementById('plan-modal');
+            document.getElementById('plan-form').reset();
+            currentEditingPlan = { clientId: client.id, planId: null };
+            
+            const scheduleContainer = document.getElementById('plan-weekly-schedule');
+            scheduleContainer.innerHTML = WEEK_DAYS.map(day => `<div class="p-3 border border-slate-700 rounded-lg bg-slate-800/50"><h4 class="text-md font-bold mb-2 text-white">${day}</h4><div class="space-y-2" data-day="${day}"></div><button type="button" class="add-exercise-btn mt-2 text-sm text-blue-400 hover:text-blue-300" data-day="${day}">+ افزودن تمرین</button></div>`).join('');
+
+            const q = query(paths.plansCollection(), where("clientId", "==", client.id), where("trainerId", "==", currentUserId));
+            const planSnap = await getDocs(q);
+            if (!planSnap.empty) {
+                const planDoc = planSnap.docs[0];
+                const plan = planDoc.data();
+                currentEditingPlan.planId = planDoc.id;
+                document.getElementById('plan-total-sessions').value = plan.totalSessions || '';
+                document.getElementById('plan-start-date').value = plan.startDate || '';
+                document.getElementById('plan-end-date').value = plan.endDate || '';
+                Object.keys(plan.schedule || {}).forEach(day => {
+                    const dayContainer = scheduleContainer.querySelector(`div[data-day="${day}"]`);
+                    if(dayContainer) plan.schedule[day].forEach(ex => addExerciseInput(dayContainer, ex));
+                });
+            }
+            modal.classList.remove('hidden');
+        }
+        
+        function addExerciseInput(container, exercise = { name: '', sets: '', reps: '' }) {
+            const exerciseNode = document.createElement('div');
+            exerciseNode.className = 'exercise-item flex gap-2 items-center';
+            exerciseNode.innerHTML = `<input type="text" value="${exercise.name}" placeholder="نام تمرین" class="w-1/2 p-2 border border-slate-600 rounded bg-slate-900 text-white focus:ring-1 focus:ring-blue-500"><input type="text" value="${exercise.sets}" placeholder="ست" class="w-1/4 p-2 border border-slate-600 rounded bg-slate-900 text-white text-center focus:ring-1 focus:ring-blue-500"><input type="text" value="${exercise.reps}" placeholder="تکرار" class="w-1/4 p-2 border border-slate-600 rounded bg-slate-900 text-white text-center focus:ring-1 focus:ring-blue-500"><button type="button" class="remove-exercise-btn text-red-500 hover:text-red-400 p-1">✖</button>`;
+            container.appendChild(exerciseNode);
+        }
+
+        async function savePlan(event) {
+            event.preventDefault(); // Prevent default form submission
+            const clientId = currentEditingPlan.clientId;
+            if (!clientId) return showToast('خطای داخلی: شناسه شاگرد مشخص نیست.', 'bg-red-600');
+
+            const schedule = {};
+            WEEK_DAYS.forEach(day => {
+                schedule[day] = Array.from(document.querySelectorAll(`#plan-weekly-schedule div[data-day="${day}"] .exercise-item`)).map(item => ({
+                    name: item.querySelector('input[placeholder="نام تمرین"]').value.trim(),
+                    sets: item.querySelector('input[placeholder="ست"]').value.trim(),
+                    reps: item.querySelector('input[placeholder="تکرار"]').value.trim(),
+                    done: false
+                })).filter(ex => ex.name && ex.sets && ex.reps);
+            });
+
+            let existingPlanData = {};
+            if (currentEditingPlan.planId) {
+                const planSnap = await getDoc(paths.plan(currentEditingPlan.planId));
+                if(planSnap.exists()) existingPlanData = planSnap.data();
+            }
+
+            const planData = {
+                trainerId: currentUserId,
+                clientId: clientId,
+                schedule: schedule,
+                totalSessions: parseInt(document.getElementById('plan-total-sessions').value) || 0,
+                startDate: document.getElementById('plan-start-date').value,
+                endDate: document.getElementById('plan-end-date').value,
+                attendedSessions: existingPlanData.attendedSessions || 0,
+                attendedDates: existingPlanData.attendedDates || [],
+                paymentReceived: existingPlanData.paymentReceived || false,
+                updatedAt: serverTimestamp()
+            };
+            
+            try {
+                // Use the existing planId or create a new doc ref if it's a new plan
+                const planRef = currentEditingPlan.planId ? paths.plan(currentEditingPlan.planId) : doc(collection(paths.plansCollection()));
+                await setDoc(planRef, planData, { merge: true });
+                showToast('دوره با موفقیت ذخیره شد!', 'bg-green-600');
+                document.getElementById('plan-modal').classList.add('hidden');
+            } catch (error) { showToast(`خطا در ذخیره دوره: ${error.message}`, 'bg-red-600'); console.error(error); }
+        }
+
+        async function togglePayment(planId, isPaid) {
+            if(!planId) return;
+            try {
+                await updateDoc(paths.plan(planId), { paymentReceived: isPaid });
+                showToast('وضعیت پرداخت به‌روز شد.', 'bg-green-600');
+            } catch (error) {
+                showToast('خطا در به‌روزرسانی پرداخت.', 'bg-red-600');
+            }
+        }
+        
+        // --- Client Logic ---
+        function showClientDashboard() {
+            showView('client-dashboard-view');
+            document.getElementById('client-welcome-name').textContent = `${currentUserData.name}، خوش آمدید!`;
+            document.getElementById('today-date-string').textContent = `امروز ${getPersianDayName(new Date())}`;
+            checkAndResetStreak();
+            renderStreakInfo();
+            listenForClientPlan();
+        }
+        
+        function listenForClientPlan() {
+            if (!currentUserData.linkedTrainerId) {
+                document.getElementById('daily-workout-list').innerHTML = `<p class="text-slate-400 text-center p-4">هنوز به مربی متصل نشده‌اید. برای دریافت برنامه، کد مربی خود را در پروفایل وارد کنید.</p>`;
+                document.getElementById('sessions-left-stat').textContent = '-';
+                return;
+            }
+            const q = query(paths.plansCollection(), where("clientId", "==", currentUserId), where("trainerId", "==", currentUserData.linkedTrainerId));
+            const unsub = onSnapshot(q, (snapshot) => {
+                const workoutListEl = document.getElementById('daily-workout-list');
+                const sessionsLeftEl = document.getElementById('sessions-left-stat');
+                if (snapshot.empty) {
+                    workoutListEl.innerHTML = `<p class="text-slate-400 text-center p-4">مربی شما هنوز دوره‌ای برایتان ثبت نکرده است.</p>`;
+                    sessionsLeftEl.textContent = '-';
+                    return;
+                }
+                const plan = { id: snapshot.docs[0].id, ...snapshot.docs[0].data() };
+                const sessionsLeft = (plan.totalSessions || 0) - (plan.attendedSessions || 0);
+                sessionsLeftEl.textContent = sessionsLeft >= 0 ? sessionsLeft : 0;
+                renderDailyWorkout(plan);
+            }, (error) => console.error("Error listening for client plan:", error));
+            unsubscribeListeners.push(unsub);
+        }
+        
+        function renderDailyWorkout(plan) {
+            const workoutList = document.getElementById('daily-workout-list');
+            const today = getPersianDayName(new Date());
+            const todaysWorkout = (plan.schedule && plan.schedule[today]) || [];
+            
+            if (todaysWorkout.length === 0) {
+                workoutList.innerHTML = `<div class="text-center p-4 rounded-lg bg-green-500/10 text-green-400">امروز روز استراحت است!</div>`;
+                return;
+            }
+            
+            workoutList.innerHTML = todaysWorkout.map((ex, i) => `
+            <div class="card p-3 flex items-center justify-between transition ${ex.done ? 'opacity-50' : ''}">
+                <div><p class="font-semibold text-white">${ex.name}</p><p class="text-sm text-slate-400">${ex.sets} ست × ${ex.reps} تکرار</p></div>
+                <input type="checkbox" data-plan-id="${plan.id}" data-day="${today}" data-index="${i}" class="exercise-checkbox w-6 h-6 text-green-500 bg-slate-700 border-slate-600 rounded" ${ex.done ? 'checked' : ''}>
+            </div>`).join('');
+        }
+
+        function renderStreakInfo() {
+            const streaks = currentUserData.streaks || { daily: 0 };
+            document.getElementById('daily-streak-stat').textContent = streaks.daily;
+        }
+
+        async function updateSessionAndStreak(planId) {
+             const planRef = paths.plan(planId);
+             const userRef = paths.user(currentUserId);
+             
+             const planSnap = await getDoc(planRef);
+             if (!planSnap.exists()) return;
+             const planData = planSnap.data();
+             
+             const todayStr = new Date().toISOString().split('T')[0];
+             if (planData.attendedDates && planData.attendedDates.includes(todayStr)) return;
+             
+             const attendedDates = [...(planData.attendedDates || []), todayStr];
+             const attendedSessions = (planData.attendedSessions || 0) + 1;
+             await updateDoc(planRef, { attendedSessions, attendedDates });
+
+             const lastCompletedDate = currentUserData.streaks?.lastCompletedDate || null;
+             let newStreakCount = 1;
+             if(lastCompletedDate) {
+                 const today = new Date();
+                 const yesterday = new Date(today);
+                 yesterday.setDate(today.getDate() - 1);
+                 if (lastCompletedDate === yesterday.toISOString().split('T')[0]) {
+                     newStreakCount = (currentUserData.streaks.daily || 0) + 1;
+                 }
+             }
+             
+             const newStreaks = { daily: newStreakCount, lastCompletedDate: todayStr };
+             await updateDoc(userRef, { streaks: newStreaks });
+             
+             currentUserData.streaks = newStreaks; 
+             renderStreakInfo();
+             showToast(`💪 دمت گرم! تمرین امروز کامل شد. زنجیره شما به ${newStreakCount} روز رسید!`, 'bg-green-600');
+        }
+        
+        async function checkAndResetStreak() {
+            const streaks = currentUserData.streaks;
+            if (!streaks || !streaks.lastCompletedDate) return;
+            const today = new Date();
+            const todayStr = today.toISOString().split('T')[0];
+            const yesterday = new Date();
+            yesterday.setDate(today.getDate() - 1);
+            const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+            if (streaks.lastCompletedDate !== todayStr && streaks.lastCompletedDate !== yesterdayStr) {
+                await updateDoc(paths.user(currentUserId), { "streaks.daily": 0 });
+                currentUserData.streaks.daily = 0;
+            }
+        }
+
+        async function toggleExerciseStatus(e) {
+            const { planId, day, index } = e.target.dataset;
+            const isDone = e.target.checked;
+            const planRef = paths.plan(planId);
+            try {
+                const planSnap = await getDoc(planRef);
+                const planData = planSnap.data();
+                const schedule = planData.schedule;
+                schedule[day][parseInt(index)].done = isDone;
+                await updateDoc(planRef, { schedule: schedule });
+
+                if (schedule[day].every(ex => ex.done)) {
+                    await updateSessionAndStreak(planId);
+                }
+            } catch (error) {
+                console.error("Error toggling exercise:", error);
+                showToast("خطا در به‌روزرسانی تمرین", "bg-red-600");
+                e.target.checked = !isDone;
+            }
+        }
+        
+        async function showClientProfile() {
+            showView('client-profile-view');
+            const profile = currentUserData.profile || {};
+            document.getElementById('height-input').value = profile.height || '';
+            document.getElementById('weight-input').value = profile.weight || '';
+            document.getElementById('age-input').value = profile.age || '';
+            
+            const trainerCodeInput = document.getElementById('client-trainer-code-input');
+            trainerCodeInput.value = '';
+            
+            if(currentUserData.linkedTrainerId) {
+                const trainerDoc = await getDoc(paths.user(currentUserData.linkedTrainerId));
+                if(trainerDoc.exists()) {
+                    trainerCodeInput.value = trainerDoc.data().trainerCode;
+                }
+            }
+        }
+        
+        async function saveProfile() {
+            const profileData = { height: document.getElementById('height-input').value, weight: document.getElementById('weight-input').value, age: document.getElementById('age-input').value };
+            const userUpdate = { profile: profileData };
+            const trainerCode = document.getElementById('client-trainer-code-input').value.trim();
+            let trainerId = null;
+            
+            if (trainerCode) {
+                 const q = query(paths.usersCollection(), where('trainerCode', '==', trainerCode), where('role', '==', 'trainer'));
+                 const trainerSnapshot = await getDocs(q);
+                 if (trainerSnapshot.empty) return showToast('کد مربی یافت نشد.', 'bg-red-600');
+                 trainerId = trainerSnapshot.docs[0].id;
+                 userUpdate.linkedTrainerId = trainerId;
+            } else { 
+                userUpdate.linkedTrainerId = null; 
+            }
+            
+            try {
+                await updateDoc(paths.user(currentUserId), userUpdate);
+                if (trainerId) {
+                    await setDoc(paths.clientLink(currentUserId), {
+                        trainerId: trainerId,
+                        clientId: currentUserId,
+                        clientName: currentUserData.name,
+                        tgUsername: currentUserData.tgUsername,
+                    }, { merge: true });
+                } else {
+                    await deleteDoc(paths.clientLink(currentUserId));
+                }
+                showToast('پروفایل با موفقیت ذخیره شد.', 'bg-green-600');
+                currentUserData.profile = profileData;
+                currentUserData.linkedTrainerId = userUpdate.linkedTrainerId;
+                showClientDashboard();
+            } catch (error) { 
+                showToast('خطا در ذخیره پروفایل.', 'bg-red-600'); 
+                console.error(error); 
+            }
+        }
+
+        // --- Global Event Delegation ---
+        document.addEventListener('click', e => {
+            if (e.target.matches('.add-exercise-btn')) addExerciseInput(e.target.previousElementSibling);
+            if (e.target.matches('.remove-exercise-btn')) e.target.closest('.exercise-item').remove();
+            if (e.target.matches('.edit-plan-btn')) {
+                const { clientId, clientName } = e.target.dataset;
+                openPlanModal({ id: clientId, name: clientName });
+            }
+        });
+
+        document.addEventListener('change', e => {
+             if (e.target.matches('.exercise-checkbox')) toggleExerciseStatus(e);
+             if (e.target.matches('.payment-checkbox')) togglePayment(e.target.dataset.planId, e.target.checked);
+        });
+
+        // --- Event Listeners Setup ---
+        function setupEventListeners() {
+            document.getElementById('complete-onboarding-btn').addEventListener('click', handleOnboarding);
+            document.getElementById('profile-btn').addEventListener('click', showClientProfile);
+            document.getElementById('back-to-dashboard-btn').addEventListener('click', showClientDashboard);
+            document.getElementById('save-profile-btn').addEventListener('click', saveProfile);
+            document.getElementById('plan-form').addEventListener('submit', savePlan);
+            document.getElementById('cancel-plan-btn').addEventListener('click', () => document.getElementById('plan-modal').classList.add('hidden'));
+        }
+
+        // --- App Initialization ---
+        tg.ready();
+        tg.expand();
+        showView('loading-view');
+        setupEventListeners();
+        initializeUser();
+
+    </script>
+</body>
+</html>
