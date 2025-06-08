@@ -56,7 +56,7 @@
         <!-- Loading View -->
         <div id="loading-view" class="text-center text-white py-10">
             <svg class="animate-spin h-8 w-8 text-white mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-            <p class="mt-2">در حال بارگذاری اطلاعات از تلگرام...</p>
+            <p id="loading-text" class="mt-2">در حال احراز هویت...</p>
         </div>
 
         <!-- Onboarding View (First Time User) -->
@@ -159,6 +159,7 @@
     <script type="module">
         // Firebase Imports
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, getDoc, updateDoc, collection, query, where, onSnapshot, serverTimestamp, getDocs, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // --- Config and Initialization ---
@@ -166,36 +167,32 @@
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'fitplan-telegram-dev';
         const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
         
-        let db;
+        let db, auth;
         try {
             const app = initializeApp(firebaseConfig);
             db = getFirestore(app);
+            auth = getAuth(app);
         } catch (e) {
             console.error("Firebase initialization failed:", e);
-            document.getElementById('loading-view').innerHTML = '<p class="text-red-500">خطا در اتصال به سرویس. لطفا صفحه را رفرش کنید.</p>';
+            document.getElementById('loading-text').textContent = 'خطا در اتصال به سرویس. لطفا صفحه را رفرش کنید.';
         }
 
         // --- App State ---
         const WEEK_DAYS = ['شنبه', 'یکشنبه', 'دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنج‌شنبه', 'جمعه'];
         let currentUserData = null;
-        let currentUserId = null;
+        let currentAuthUser = null;
         let currentEditingPlan = { clientId: null, planId: null };
         let unsubscribeListeners = [];
+        let tgUser = null;
 
         // --- View Management & Utils ---
         function showView(viewId) {
-            document.querySelectorAll('#app-container > div').forEach(v => {
-                v.classList.add('hidden');
-            });
+            document.querySelectorAll('#app-container > div').forEach(v => v.classList.add('hidden'));
             const view = document.getElementById(viewId);
             if (view) view.classList.remove('hidden');
             
             const header = document.getElementById('app-header');
-            if (viewId === 'loading-view' || viewId === 'onboarding-view') {
-                header.classList.add('hidden');
-            } else {
-                header.classList.remove('hidden');
-            }
+            header.classList.toggle('hidden', viewId === 'loading-view' || viewId === 'onboarding-view');
         }
         function showToast(message, color = 'bg-slate-800') { const t = document.getElementById('toast-notification'); t.textContent = message; t.className = `toast show ${color}`; setTimeout(() => { t.className = 'toast'; }, 3500); }
         function getPersianDayName(date) { return new Intl.DateTimeFormat('fa-IR', { weekday: 'long' }).format(date); }
@@ -212,30 +209,70 @@
             clientLinksCollection: () => collection(db, 'artifacts', appId, 'public', 'data', 'clientLinks')
         };
 
-        // --- User Identification & Onboarding ---
-        async function initializeUser() {
-            cleanupListeners();
-            if (!tg.initDataUnsafe || !tg.initDataUnsafe.user || !tg.initDataUnsafe.user.id) {
-                 document.getElementById('loading-view').innerHTML = '<p class="text-red-500 text-center p-4">اطلاعات کاربر تلگرام یافت نشد. لطفا مطمئن شوید اپلیکیشن را از داخل تلگرام اجرا کرده‌اید.</p>';
-                return;
-            }
-            
-            currentUserId = tg.initDataUnsafe.user.id.toString();
-            const userDocRef = paths.user(currentUserId);
-            const userDocSnap = await getDoc(userDocRef);
+        // --- Auth State Change Handler ---
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                currentAuthUser = user;
+                cleanupListeners();
+                document.getElementById('loading-text').textContent = 'در حال دریافت اطلاعات پروفایل...';
+                
+                const userDocRef = paths.user(user.uid);
+                const userDocSnap = await getDoc(userDocRef);
 
-            if (userDocSnap.exists()) {
-                currentUserData = { uid: currentUserId, ...userDocSnap.data() };
-                if (currentUserData.role === 'trainer') {
-                    showTrainerDashboard();
+                if (userDocSnap.exists()) {
+                    currentUserData = { uid: user.uid, ...userDocSnap.data() };
+                    if (currentUserData.role === 'trainer') {
+                        showTrainerDashboard();
+                    } else {
+                        showClientDashboard();
+                    }
                 } else {
-                    showClientDashboard();
+                    // New user, created via auth flow. Show onboarding.
+                    const userName = tgUser?.first_name || '';
+                    document.getElementById('onboarding-name-input').value = userName;
+                    showView('onboarding-view');
                 }
-            } else {
-                // New user, show onboarding screen.
-                const userName = tg.initDataUnsafe.user.first_name || '';
-                document.getElementById('onboarding-name-input').value = userName;
-                showView('onboarding-view');
+            }
+        });
+
+
+        // --- User Initialization & Seamless Auth Flow ---
+        async function initializeAndAuthUser() {
+            try {
+                // Check if running inside Telegram, otherwise use mock data for development.
+                if (tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.id) {
+                    tgUser = tg.initDataUnsafe.user;
+                } else {
+                    // Fallback for development/preview environment
+                    console.warn("Telegram data not found. Using mock user for development.");
+                    tgUser = { id: '123456789', first_name: 'کاربر تستی', username: 'testuser' };
+                }
+                
+                const tgId = tgUser.id.toString();
+                const email = `${tgId}@telegram.fitplan.app`; // Unique, deterministic email
+                const password = `secret_pwd_${tgId}`; // Unique, deterministic password
+
+                try {
+                    await signInWithEmailAndPassword(auth, email, password);
+                    // onAuthStateChanged will handle the rest.
+                } catch (error) {
+                    if (error.code === 'auth/user-not-found') {
+                        // This is a new user, create an account for them.
+                        document.getElementById('loading-text').textContent = 'در حال ایجاد حساب کاربری...';
+                        await createUserWithEmailAndPassword(auth, email, password);
+                        // onAuthStateChanged will handle the rest.
+                    } else {
+                        throw error; // Rethrow other sign-in errors.
+                    }
+                }
+            } catch (error) {
+                console.error("Authentication Error:", error);
+                const loadingView = document.getElementById('loading-view');
+                loadingView.innerHTML = `<div class="text-red-500 text-center p-4">
+                    <p>خطا در احراز هویت!</p>
+                    <p class="text-sm text-slate-400 mt-2">${error.message}</p>
+                </div>`;
+                showView('loading-view');
             }
         }
 
@@ -247,13 +284,13 @@
             const age = document.getElementById('onboarding-age-input').value.trim();
 
             if (!name) return showToast('لطفا نام خود را وارد کنید.', 'bg-red-600');
-            if (!role) return showToast('لطفا نقش خود را انتخاب کنید.', 'bg-red-600');
-
+            
             showView('loading-view');
 
             const userData = {
                 name,
-                tgUsername: tg.initDataUnsafe.user.username || '',
+                tgUserId: tgUser.id.toString(),
+                tgUsername: tgUser.username || '',
                 role,
                 createdAt: serverTimestamp(),
                 profile: { height, weight, age },
@@ -267,8 +304,9 @@
             }
 
             try {
-                await setDoc(paths.user(currentUserId), userData);
-                currentUserData = { uid: currentUserId, ...userData }; // Update local state
+                await setDoc(paths.user(currentAuthUser.uid), userData);
+                
+                currentUserData = { uid: currentAuthUser.uid, ...userData };
                 if (role === 'trainer') {
                     showTrainerDashboard();
                 } else {
@@ -290,7 +328,7 @@
         }
 
         function listenForClients() {
-            const q = query(paths.clientLinksCollection(), where('trainerId', '==', currentUserId));
+            const q = query(paths.clientLinksCollection(), where('trainerId', '==', currentAuthUser.uid));
             const unsub = onSnapshot(q, (snapshot) => {
                 const clientListEl = document.getElementById('clients-list');
                 if (snapshot.empty) {
@@ -298,38 +336,37 @@
                     return;
                 }
                 
-                clientListEl.innerHTML = ''; // Clear list before re-rendering
+                clientListEl.innerHTML = '';
                 snapshot.docs.forEach(async linkDoc => {
                     const linkData = linkDoc.data();
-                    const client = { 
-                        id: linkData.clientId, 
-                        name: linkData.clientName,
-                        tgUsername: linkData.tgUsername
-                    };
-                    const planQuery = query(paths.plansCollection(), where('clientId', '==', client.id), where('trainerId', '==', currentUserId));
+                    const client = { id: linkData.clientId, name: linkData.clientName, tgUsername: linkData.tgUsername };
+                    const planQuery = query(paths.plansCollection(), where('clientId', '==', client.id), where('trainerId', '==', currentAuthUser.uid));
                     const planSnap = await getDocs(planQuery);
                     const plan = planSnap.empty ? {} : { id: planSnap.docs[0].id, ...planSnap.docs[0].data() };
 
                     const clientEl = document.createElement('div');
-                    clientEl.className = 'card p-3 space-y-2';
+                    clientEl.className = 'card p-3 space-y-2 cursor-pointer hover:bg-slate-700/50 transition-colors';
+                    clientEl.dataset.clientId = client.id;
+                    clientEl.dataset.clientName = client.name;
                     clientEl.innerHTML = `
-                        <div class="flex justify-between items-center">
+                        <div class="flex justify-between items-center pointer-events-none">
                             <p class="font-bold text-white">${client.name} (@${client.tgUsername || 'N/A'})</p>
-                            <button data-client-id="${client.id}" data-client-name="${client.name}" class="edit-plan-btn text-sm text-blue-400 hover:underline">${plan.id ? 'ویرایش دوره' : 'ایجاد دوره'}</button>
+                            <span class="text-sm text-blue-400">${plan.id ? 'ویرایش دوره' : 'ایجاد دوره'}</span>
                         </div>
-                        <div class="flex justify-between items-center text-xs text-slate-400">
+                        <div class="flex justify-between items-center text-xs text-slate-400 pointer-events-none">
                              <p>جلسات: <span class="font-mono">${plan.attendedSessions || 0}/${plan.totalSessions || '-'}</span></p>
                              <p>پایان دوره: <span class="font-mono">${formatDate(plan.endDate)}</span></p>
-                             <label class="flex items-center gap-1 cursor-pointer">
-                                 پرداخت: <input type="checkbox" data-plan-id="${plan.id || ''}" class="payment-checkbox w-4 h-4" ${plan.paymentReceived ? 'checked' : ''} ${!plan.id ? 'disabled' : ''}>
+                             <label class="flex items-center gap-1">
+                                 پرداخت: <input type="checkbox" data-plan-id="${plan.id || ''}" class="payment-checkbox w-4 h-4 pointer-events-auto" ${plan.paymentReceived ? 'checked' : ''} ${!plan.id ? 'disabled' : ''}>
                              </label>
                         </div>`;
+                    clientEl.addEventListener('click', (e) => {
+                        if (e.target.matches('.payment-checkbox')) return;
+                        openPlanModal({ id: client.id, name: client.name });
+                    });
                     clientListEl.appendChild(clientEl);
                 });
-            }, (error) => {
-                console.error("Error listening for clients:", error);
-                showToast('خطا در دریافت لیست شاگردان.', 'bg-red-600');
-            });
+            }, (error) => console.error("Error listening for clients:", error));
             unsubscribeListeners.push(unsub);
         }
 
@@ -341,7 +378,7 @@
             const scheduleContainer = document.getElementById('plan-weekly-schedule');
             scheduleContainer.innerHTML = WEEK_DAYS.map(day => `<div class="p-3 border border-slate-700 rounded-lg bg-slate-800/50"><h4 class="text-md font-bold mb-2 text-white">${day}</h4><div class="space-y-2" data-day="${day}"></div><button type="button" class="add-exercise-btn mt-2 text-sm text-blue-400 hover:text-blue-300" data-day="${day}">+ افزودن تمرین</button></div>`).join('');
 
-            const q = query(paths.plansCollection(), where("clientId", "==", client.id), where("trainerId", "==", currentUserId));
+            const q = query(paths.plansCollection(), where("clientId", "==", client.id), where("trainerId", "==", currentAuthUser.uid));
             const planSnap = await getDocs(q);
             if (!planSnap.empty) {
                 const planDoc = planSnap.docs[0];
@@ -366,7 +403,7 @@
         }
 
         async function savePlan(event) {
-            event.preventDefault(); // Prevent default form submission
+            event.preventDefault();
             const clientId = currentEditingPlan.clientId;
             if (!clientId) return showToast('خطای داخلی: شناسه شاگرد مشخص نیست.', 'bg-red-600');
 
@@ -387,7 +424,7 @@
             }
 
             const planData = {
-                trainerId: currentUserId,
+                trainerId: currentAuthUser.uid,
                 clientId: clientId,
                 schedule: schedule,
                 totalSessions: parseInt(document.getElementById('plan-total-sessions').value) || 0,
@@ -400,7 +437,6 @@
             };
             
             try {
-                // Use the existing planId or create a new doc ref if it's a new plan
                 const planRef = currentEditingPlan.planId ? paths.plan(currentEditingPlan.planId) : doc(collection(paths.plansCollection()));
                 await setDoc(planRef, planData, { merge: true });
                 showToast('دوره با موفقیت ذخیره شد!', 'bg-green-600');
@@ -434,7 +470,7 @@
                 document.getElementById('sessions-left-stat').textContent = '-';
                 return;
             }
-            const q = query(paths.plansCollection(), where("clientId", "==", currentUserId), where("trainerId", "==", currentUserData.linkedTrainerId));
+            const q = query(paths.plansCollection(), where("clientId", "==", currentAuthUser.uid), where("trainerId", "==", currentUserData.linkedTrainerId));
             const unsub = onSnapshot(q, (snapshot) => {
                 const workoutListEl = document.getElementById('daily-workout-list');
                 const sessionsLeftEl = document.getElementById('sessions-left-stat');
@@ -475,14 +511,14 @@
 
         async function updateSessionAndStreak(planId) {
              const planRef = paths.plan(planId);
-             const userRef = paths.user(currentUserId);
+             const userRef = paths.user(currentAuthUser.uid);
              
              const planSnap = await getDoc(planRef);
              if (!planSnap.exists()) return;
              const planData = planSnap.data();
              
              const todayStr = new Date().toISOString().split('T')[0];
-             if (planData.attendedDates && planData.attendedDates.includes(todayStr)) return;
+             if (planData.attendedDates?.includes(todayStr)) return;
              
              const attendedDates = [...(planData.attendedDates || []), todayStr];
              const attendedSessions = (planData.attendedSessions || 0) + 1;
@@ -517,7 +553,7 @@
             const yesterdayStr = yesterday.toISOString().split('T')[0];
 
             if (streaks.lastCompletedDate !== todayStr && streaks.lastCompletedDate !== yesterdayStr) {
-                await updateDoc(paths.user(currentUserId), { "streaks.daily": 0 });
+                await updateDoc(paths.user(currentAuthUser.uid), { "streaks.daily": 0 });
                 currentUserData.streaks.daily = 0;
             }
         }
@@ -578,16 +614,16 @@
             }
             
             try {
-                await updateDoc(paths.user(currentUserId), userUpdate);
+                await updateDoc(paths.user(currentAuthUser.uid), userUpdate);
                 if (trainerId) {
-                    await setDoc(paths.clientLink(currentUserId), {
+                    await setDoc(paths.clientLink(currentAuthUser.uid), {
                         trainerId: trainerId,
-                        clientId: currentUserId,
+                        clientId: currentAuthUser.uid,
                         clientName: currentUserData.name,
                         tgUsername: currentUserData.tgUsername,
                     }, { merge: true });
                 } else {
-                    await deleteDoc(paths.clientLink(currentUserId));
+                    await deleteDoc(paths.clientLink(currentAuthUser.uid));
                 }
                 showToast('پروفایل با موفقیت ذخیره شد.', 'bg-green-600');
                 currentUserData.profile = profileData;
@@ -603,15 +639,15 @@
         document.addEventListener('click', e => {
             if (e.target.matches('.add-exercise-btn')) addExerciseInput(e.target.previousElementSibling);
             if (e.target.matches('.remove-exercise-btn')) e.target.closest('.exercise-item').remove();
-            if (e.target.matches('.edit-plan-btn')) {
-                const { clientId, clientName } = e.target.dataset;
-                openPlanModal({ id: clientId, name: clientName });
-            }
         });
 
         document.addEventListener('change', e => {
-             if (e.target.matches('.exercise-checkbox')) toggleExerciseStatus(e);
-             if (e.target.matches('.payment-checkbox')) togglePayment(e.target.dataset.planId, e.target.checked);
+             if (e.target.matches('.payment-checkbox')) {
+                e.stopPropagation();
+                togglePayment(e.target.dataset.planId, e.target.checked);
+             } else if (e.target.matches('.exercise-checkbox')) {
+                toggleExerciseStatus(e);
+             }
         });
 
         // --- Event Listeners Setup ---
@@ -629,7 +665,7 @@
         tg.expand();
         showView('loading-view');
         setupEventListeners();
-        initializeUser();
+        initializeAndAuthUser();
 
     </script>
 </body>
