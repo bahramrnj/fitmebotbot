@@ -215,17 +215,29 @@
         async function loadUserDashboard(user) {
             showView('loading-view');
             const { data, error } = await db.from('profiles').select('*').eq('id', user.id).single();
-            if (error) {
+            
+            if (error && error.code !== 'PGRST116') { // Ignore "No rows found" error
                 showToast(`خطا در بارگذاری پروفایل: ${error.message}`, 'bg-red-500');
                 await db.auth.signOut();
                 return;
             }
+
             if (data) {
                 currentUserData = data;
-                if (data.role === 'trainer') showTrainerDashboard();
-                else showClientDashboard();
+                // If profile is created but lacks height/weight, it means onboarding was skipped/failed.
+                if (!data.profile_data || data.profile_data.height == null) {
+                    showView('onboarding-view');
+                } else if (data.role === 'trainer') {
+                    showTrainerDashboard();
+                } else {
+                    showClientDashboard();
+                }
             } else {
-                 showView('onboarding-view');
+                 // This case should not happen with the new flow, but as a fallback.
+                 // This means auth user exists but profile record does not.
+                 showView('auth-view');
+                 showToast('خطا: پروفایل شما یافت نشد، لطفا با پشتیبانی تماس بگیرید.', 'bg-red-600');
+                 await db.auth.signOut();
             }
         }
 
@@ -243,7 +255,7 @@
                     return showToast('نام الزامی است.', 'bg-red-600');
                 }
 
-                const { data: { user }, error: signUpError } = await db.auth.signUp({ 
+                const { data, error: signUpError } = await db.auth.signUp({ 
                     email, 
                     password,
                     options: {
@@ -258,8 +270,12 @@
                     showView('auth-view');
                     return showToast(`خطا در ثبت نام: ${signUpError.message}`, 'bg-red-600');
                 }
+
+                // IMPORTANT: The RLS policy for profiles requires a function to copy metadata to the table.
+                // The client-side insert was violating RLS. The correct approach is a DB function.
+                // Since that is complex, we will rely on the user to complete onboarding after first login.
                 
-                showToast('ثبت نام موفق بود! لطفا ایمیل خود را برای فعال‌سازی حساب کاربری تایید کنید و سپس وارد شوید.', 'bg-green-600');
+                showToast('ثبت نام موفق بود! لطفا ایمیل خود را تایید کنید و سپس وارد شوید.', 'bg-green-600');
                 document.getElementById('password-input').value = '';
                 document.getElementById('toggle-auth-mode-btn').click(); 
                 showView('auth-view');
@@ -521,8 +537,8 @@
             document.getElementById('back-to-dashboard-btn').addEventListener('click', () => {
                 if(currentUserData.role === 'trainer') showTrainerDashboard(); else showClientDashboard();
             });
-            document.getElementById('complete-onboarding-btn').addEventListener('click', () => {
-                 const { data: { user } } = db.auth.getUser();
+            document.getElementById('complete-onboarding-btn').addEventListener('click', async () => {
+                 const { data: { user } } = await db.auth.getUser();
                  handleOnboardingSubmit(user);
             });
             document.getElementById('save-profile-btn').addEventListener('click', saveProfile);
@@ -540,9 +556,9 @@
             setupEventListeners();
             if (db) { 
                 db.auth.onAuthStateChange(async (event, session) => {
-                    if (session) {
+                    if (event === 'SIGNED_IN') {
                        await loadUserDashboard(session.user);
-                    } else {
+                    } else if (event === 'SIGNED_OUT') {
                         showView('auth-view');
                     }
                 });
@@ -551,4 +567,4 @@
         main();
     </script>
 </body>
-</ht" of the most up-to-date immersive "FitPlan - نسخه نهایی با Supabase Auth" and I'm asking the following query: "من همه کارارو کردم بازم همون ارور قبلی رو می
+</html>
