@@ -100,7 +100,6 @@
         </button>
     </nav>
 
-    <!-- Plan Creation/Edit Modal -->
     <div id="plan-modal" class="hidden fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-50 p-4">
         <form id="plan-form" class="card rounded-xl p-6 w-full max-w-lg space-y-4 flex flex-col max-h-[90vh]">
             <h3 id="plan-modal-title" class="text-xl font-bold border-b border-[var(--card-border)] pb-3 flex-shrink-0">ایجاد / ویرایش برنامه</h3>
@@ -274,9 +273,10 @@
                         profileUpdates.linked_trainer_id = trainer.id;
                     }
                 }
-                const { data, error } = await db.from('profiles').update(profileUpdates).eq('id', currentUserData.id).select().single();
+                // Fetch the full profile data again after update to keep it consistent
+                const { data, error } = await db.from('profiles').update(profileUpdates).eq('id', currentUserData.id).select('*, plan:workout_plans(plan_data)').single();
                 if (error) throw error;
-                currentUserData = { ...currentUserData, ...data };
+                currentUserData = data; // Update local data with the new info
                 showToast('پروفایل با موفقیت به‌روز شد!', 'success');
             } catch (error) {
                 showToast(`خطا: ${error.message}`, 'error');
@@ -413,6 +413,73 @@
             }
         }
         
+        async function updateSessionAndStreak() {
+            const todayStr = new Date().toISOString().split('T')[0];
+            const planData = currentUserData.plan[0].plan_data;
+
+            if (planData.attendedDates?.includes(todayStr)) return;
+
+            if (!planData.attendedDates) planData.attendedDates = [];
+            planData.attendedDates.push(todayStr);
+            planData.attendedSessions = (planData.attendedSessions || 0) + 1;
+
+            let newStreakCount = 1;
+            const lastCompletedStr = currentUserData.streaks?.lastCompletedDate;
+            if (lastCompletedStr) {
+                const yesterday = new Date();
+                yesterday.setDate(yesterday.getDate() - 1);
+                const yesterdayStr = yesterday.toISOString().split('T')[0];
+                if (lastCompletedStr === yesterdayStr) {
+                    newStreakCount = (currentUserData.streaks.daily || 0) + 1;
+                }
+            }
+            const newStreaks = { daily: newStreakCount, lastCompletedDate: todayStr };
+
+            try {
+                const [profileUpdateResult, planUpdateResult] = await Promise.all([
+                    db.from('profiles').update({ streaks: newStreaks }).eq('id', currentUserData.id),
+                    db.from('workout_plans').update({ plan_data: planData }).eq('client_id', currentUserData.id)
+                ]);
+
+                if (profileUpdateResult.error || planUpdateResult.error) throw new Error(profileUpdateResult.error?.message || planUpdateResult.error?.message);
+
+                currentUserData.streaks = newStreaks;
+                currentUserData.plan[0].plan_data = planData;
+                showToast(`💪 عالی بود! تمرین امروز کامل شد. زنجیره شما به ${newStreakCount} روز رسید!`, 'success');
+                renderClientDashboard();
+            } catch (error) {
+                showToast(`خطا در به‌روزرسانی آمار: ${error.message}`, 'error');
+            }
+        }
+
+        async function toggleExerciseStatus(e) {
+            const checkbox = e.target;
+            const { day, index } = checkbox.dataset;
+            const isChecked = checkbox.checked;
+
+            try {
+                if (!currentUserData.plan?.[0]?.plan_data) throw new Error("برنامه ورزشی یافت نشد.");
+                const exercise = currentUserData.plan[0].plan_data.schedule[day][parseInt(index)];
+                exercise.done = isChecked;
+                checkbox.closest('.card').classList.toggle('opacity-50', isChecked);
+
+                const { error } = await db.from('workout_plans').update({ plan_data: currentUserData.plan[0].plan_data }).eq('client_id', currentUserData.id);
+                if (error) throw error;
+
+                const allDone = currentUserData.plan[0].plan_data.schedule[day].every(ex => ex.done);
+                if (allDone) await updateSessionAndStreak();
+            } catch (error) {
+                showToast(`خطا در ذخیره وضعیت تمرین: ${error.message}`, 'error');
+                const exercise = currentUserData.plan[0].plan_data.schedule[day][parseInt(index)];
+                exercise.done = !isChecked;
+                checkbox.checked = !isChecked;
+                checkbox.closest('.card').classList.toggle('opacity-50', !isChecked);
+            }
+        }
+
+        // =================================================================
+        // 4. AUTHENTICATION & DATA LOADING
+        // =================================================================
         async function handleAuthAction() {
             const email = dom.emailInput.value.trim();
             const password = dom.passwordInput.value.trim();
@@ -513,6 +580,13 @@
                 if (e.target.matches('.add-exercise-btn')) addExerciseInput(e.target.previousElementSibling);
                 if (e.target.matches('.remove-exercise-btn')) e.target.closest('.exercise-item').remove();
             });
+
+            document.body.addEventListener('change', e => {
+                if (e.target.matches('.exercise-checkbox')) {
+                    toggleExerciseStatus(e);
+                }
+            });
+
             document.getElementById('plan-form').addEventListener('submit', savePlan);
         }
 
