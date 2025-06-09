@@ -371,7 +371,43 @@
             dom.loadingText.textContent = `خطای مهلک: ${e.message}`;
             console.error("Fatal initialization error:", e);
         }
+async function handleAuthAction() {
+    const email = dom.emailInput.value.trim();
+    const password = dom.passwordInput.value.trim();
+    if (!email || !password) return showToast('ایمیل و رمز عبور الزامی است.', 'error');
+    
+    dom.authActionBtn.disabled = true;
+    dom.authActionBtn.textContent = 'در حال بررسی...';
 
+    if (isRegisterMode) {
+        const name = dom.nameInput.value.trim();
+        const role = dom.roleSelect.value;
+        if (!name) {
+            showToast('نام الزامی است.', 'error');
+            dom.authActionBtn.disabled = false;
+            dom.authActionBtn.textContent = 'ثبت نام';
+            return;
+        }
+        const { data, error } = await db.auth.signUp({
+            email, password, options: { data: { name, role } }
+        });
+        if (error) {
+            showToast(error.message, 'error');
+        } else {
+            showToast('ثبت نام موفق بود! لطفا ایمیل خود را برای تایید حساب کاربری چک کنید.', 'success');
+            dom.toggleAuthModeBtn.click(); // Automatically switch to login view
+        }
+    } else {
+        const { error } = await db.auth.signInWithPassword({ email, password });
+        if (error) {
+            showToast(error.message, 'error');
+        }
+        // On successful login, the onAuthStateChange listener will handle everything else.
+    }
+
+    dom.authActionBtn.disabled = false;
+    dom.authActionBtn.textContent = isRegisterMode ? 'ثبت نام' : 'ورود';
+}
     </script>
 </body>
 </html>
