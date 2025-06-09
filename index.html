@@ -143,13 +143,14 @@
         // UTILITY FUNCTIONS
         // =================================================================
 
-        function showToast(message, type = 'info') {
-            const toast = document.getElementById('toast-notification');
-            toast.textContent = message;
-            const bgColor = type === 'success' ? 'bg-green-600' : type === 'error' ? 'bg-red-600' : 'bg-gray-800';
-            toast.className = `toast show ${bgColor}`;
-            setTimeout(() => { toast.className = 'toast'; }, 3500);
-        }
+       function showToast(message, type = 'info') {
+    const toast = document.getElementById('toast-notification');
+    toast.textContent = message;
+    // FIX: A space was added between "const" and "bgColor"
+    const bgColor = type === 'success' ? 'bg-green-600' : type === 'error' ? 'bg-red-600' : 'bg-gray-800';
+    toast.className = `toast show ${bgColor}`;
+    setTimeout(() => { toast.className = 'toast'; }, 3500);
+}
 
         function applyTheme(theme) {
             document.documentElement.setAttribute('data-theme', theme);
