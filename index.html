@@ -347,31 +347,7 @@
         // =================================================================
         // 5. APP START
         // =================================================================
-        
-        function main() {
-            console.log("App initializing...");
-            loadTheme();
-            setupEventListeners();
-            
-            db.auth.onAuthStateChange((event, session) => {
-                if (session && session.user) {
-                    loadAppData(session.user);
-                } else {
-                    currentUserData = null;
-                    showScreen('auth');
-                }
-            });
-        }
-        
-        try {
-            if (!SUPABASE_URL || SUPABASE_URL.startsWith('YOUR_')) throw new Error("Supabase URL/Key not set.");
-            db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-            main();
-        } catch (e) {
-            dom.loadingText.textContent = `خطای مهلک: ${e.message}`;
-            console.error("Fatal initialization error:", e);
-        }
-async function handleAuthAction() {
+        async function handleAuthAction() {
     const email = dom.emailInput.value.trim();
     const password = dom.passwordInput.value.trim();
     if (!email || !password) return showToast('ایمیل و رمز عبور الزامی است.', 'error');
@@ -408,6 +384,30 @@ async function handleAuthAction() {
     dom.authActionBtn.disabled = false;
     dom.authActionBtn.textContent = isRegisterMode ? 'ثبت نام' : 'ورود';
 }
+        function main() {
+            console.log("App initializing...");
+            loadTheme();
+            setupEventListeners();
+            
+            db.auth.onAuthStateChange((event, session) => {
+                if (session && session.user) {
+                    loadAppData(session.user);
+                } else {
+                    currentUserData = null;
+                    showScreen('auth');
+                }
+            });
+        }
+        
+        try {
+            if (!SUPABASE_URL || SUPABASE_URL.startsWith('YOUR_')) throw new Error("Supabase URL/Key not set.");
+            db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            main();
+        } catch (e) {
+            dom.loadingText.textContent = `خطای مهلک: ${e.message}`;
+            console.error("Fatal initialization error:", e);
+        }
+
     </script>
 </body>
 </html>
