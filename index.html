@@ -383,26 +383,35 @@
             });
             
             dom.navBar.addEventListener('click', (e) => {
-                const button = e.target.closest('.nav-btn');
-                if (!button || !currentUserData) return;
-                
-                const viewId = button.dataset.view;
-                const title = button.dataset.title;
+            const button = e.target.closest('.nav-btn');
+            if (!button || !currentUserData) return;
+            
+            const viewId = button.dataset.view;
+            const title = button.dataset.title;
 
-                if (viewId === 'client-dashboard-view' && currentUserData.role === 'trainer') {
-                    renderTrainerDashboard();
-                } else if (viewId === 'profile-view') {
-                    renderProfileView();
-                } else if (viewId === 'challenges-view') {
-                    renderChallengesView();
-                } else if (viewId === 'client-dashboard-view') {
+            // --- شروع بخش اصلاح شده ---
+
+            // 1. ابتدا صفحه مورد نظر را نمایش می‌دهیم
+            showView(viewId, title);
+
+            // 2. سپس محتوای آن صفحه را در صورت نیاز رندر می‌کنیم
+            // (این ساختار تضمین می‌کند که هر دکمه کار خود را به درستی انجام دهد)
+            switch (viewId) {
+                case 'client-dashboard-view':
                     renderClientDashboard();
-                } else {
-                    showView(viewId, title); // Fallback for other potential views
-                }
-            });
-        }
-
+                    break;
+                case 'trainer-dashboard-view':
+                    renderTrainerDashboard();
+                    break;
+                case 'profile-view':
+                    renderProfileView();
+                    break;
+                case 'challenges-view':
+                    renderChallengesView();
+                    break;
+            }
+            // --- پایان بخش اصلاح شده ---
+        });
         // =================================================================
         // INITIALIZATION
         // =================================================================
