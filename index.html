@@ -249,39 +249,66 @@
             document.getElementById('save-profile-btn').addEventListener('click', saveProfile);
         }
 
-        async function saveProfile() {
-            const saveButton = document.getElementById('save-profile-btn');
-            saveButton.disabled = true;
-            saveButton.textContent = 'در حال ذخیره...';
-            const profileUpdates = {
-                name: document.getElementById('profile-name').value.trim(),
-                profile_data: {
-                    height: document.getElementById('profile-height').value,
-                    weight: document.getElementById('profile-weight').value,
-                    age: document.getElementById('profile-age').value,
-                }
-            };
+       async function saveProfile() {
+    const saveButton = document.getElementById('save-profile-btn');
+    if (!saveButton) return;
+
+    saveButton.disabled = true;
+    saveButton.textContent = 'در حال ذخیره...';
+
+    try {
+        const profileUpdates = {
+            name: document.getElementById('profile-name').value.trim(),
+            profile_data: {
+                height: document.getElementById('profile-height').value || null,
+                weight: document.getElementById('profile-weight').value || null,
+                age: document.getElementById('profile-age').value || null,
+            }
+        };
+
+        // فقط برای کاربر شاگرد، کد مربی را بررسی کن
+        if (currentUserData.role === 'client') {
             const trainerCodeInput = document.getElementById('trainer-code');
             if (trainerCodeInput && trainerCodeInput.value.trim()) {
-                const { data: trainer, error } = await db.from('profiles').select('id').eq('trainer_code', trainerCodeInput.value.trim()).single();
-                if (error || !trainer) {
-                    showToast('کد مربی یافت نشد.', 'error');
+                const trainerCode = trainerCodeInput.value.trim();
+                const { data: trainer, error: trainerError } = await db.from('profiles')
+                    .select('id')
+                    .eq('trainer_code', trainerCode)
+                    .single();
+                
+                if (trainerError || !trainer) {
+                    showToast('کد مربی یافت نشد یا نامعتبر است.', 'error');
                     saveButton.disabled = false;
                     saveButton.textContent = 'ذخیره تغییرات';
                     return;
                 }
                 profileUpdates.linked_trainer_id = trainer.id;
             }
-            const { data, error } = await db.from('profiles').update(profileUpdates).eq('id', currentUserData.id).select().single();
-            if (error) showToast(`خطا در ذخیره: ${error.message}`, 'error');
-            else {
-                currentUserData = { ...currentUserData, ...data };
-                showToast('پروفایل با موفقیت به‌روز شد!', 'success');
-            }
-            saveButton.disabled = false;
-            saveButton.textContent = 'ذخیره تغییرات';
         }
 
+        const { data, error } = await db.from('profiles')
+            .update(profileUpdates)
+            .eq('id', currentUserData.id)
+            .select()
+            .single();
+        
+        if (error) {
+            throw error;
+        }
+        
+        // داده‌های کاربر را در برنامه به‌روز می‌کنیم
+        currentUserData = { ...currentUserData, ...data };
+        showToast('پروفایل با موفقیت به‌روز شد!', 'success');
+
+    } catch (error) {
+        console.error("Error saving profile:", error);
+        showToast(`خطا در ذخیره پروفایل: ${error.message}`, 'error');
+    } finally {
+        // این بلاک تضمین می‌کند که دکمه همیشه به حالت اول برگردد
+        saveButton.disabled = false;
+        saveButton.textContent = 'ذخیره تغییرات';
+    }
+}
         async function renderChallengesView() {
             const view = document.getElementById('challenges-view');
             view.innerHTML = `<p class="text-center text-[var(--text-color-muted)]">در حال بارگذاری...</p>`;
