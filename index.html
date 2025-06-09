@@ -457,14 +457,14 @@
         }
         
         try {
-            if (!SUPABASE_URL || SUPABASE_URL.startsWith('YOUR_')) throw new Error("Supabase URL/Key not set.");
-            db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-            main();
-        } catch (e) {
-            console.error("Fatal initialization error:", e);
-            dom.loadingText.textContent = `خطای مهلک: ${e.message}`;
-        }
-
+    if (!SUPABASE_URL || SUPABASE_URL.startsWith('YOUR_')) throw new Error("Supabase URL/Key not set.");
+    db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    main();
+} catch (e) {
+    console.error("Fatal initialization error:", e);
+    dom.loadingView.classList.remove('hidden');
+    dom.loadingText.textContent = `خطای مهلک: ${e.message}`;
+} // <-- این آکولاد بسته در کد قبلی جا افتاده بود 
     </script>
 </body>
 </html>
