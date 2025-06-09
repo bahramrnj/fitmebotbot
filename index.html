@@ -222,7 +222,25 @@
             const plan = currentUserData.plan?.[0]?.plan_data;
             const sessionsLeft = plan ? (plan.totalSessions || 0) - (plan.attendedSessions || 0) : '-';
             const todayPersian = new Intl.DateTimeFormat('fa-IR', { weekday: 'long' }).format(new Date());
+
+            let customerClubHTML = '';
+            if (streak >= 7) {
+                customerClubHTML = `
+                    <div id="customer-club-banner" class="card bg-gradient-to-l from-emerald-500 via-green-500 to-teal-500 p-4 rounded-xl flex items-center gap-4">
+                        <div class="text-white">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 12 20 22 4 22 4 12"></polyline><rect x="2" y="7" width="20" height="5"></rect><line x1="12" y1="22" x2="12" y2="7"></line><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"></path><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"></path></svg>
+                        </div>
+                        <div class="flex-grow">
+                            <h3 class="font-bold text-lg text-white">🎁 جایزه تمرین من!</h3>
+                            <p class="text-sm text-white opacity-90">زنجیره ۷ روزه تمرینت رو حفظ کردی؟ تبریک! کد تخفیف ویژه‌ات آماده‌ست. برای دریافت، وارد باشگاه مشتریان شو.</p>
+                        </div>
+                         <a href="https://mazidipharmacy.com/" target="_blank" rel="noopener noreferrer" class="bg-white text-emerald-700 font-bold py-2 px-4 rounded-lg text-sm shrink-0 hover:bg-gray-100 transition-colors">دریافت جایزه</a>
+                    </div>
+                `;
+            }
+
             view.innerHTML = `
+                ${customerClubHTML}
                 <div class="grid grid-cols-2 gap-4">
                     <div class="card p-4 rounded-xl text-center"><p class="text-4xl font-bold text-[var(--accent-color)]">${streak}</p><p class="text-sm text-[var(--text-color-muted)] mt-1">🔥 زنجیره روزانه</p></div>
                     <div class="card p-4 rounded-xl text-center"><p class="text-4xl font-bold text-[var(--accent-color)]">${sessionsLeft >= 0 ? sessionsLeft : '-'}</p><p class="text-sm text-[var(--text-color-muted)] mt-1">📅 جلسات باقی‌مانده</p></div>
@@ -273,9 +291,9 @@
                         profileUpdates.linked_trainer_id = trainer.id;
                     }
                 }
-                const { data, error } = await db.from('profiles').update(profileUpdates).eq('id', currentUserData.id).select().single();
+                const { data, error } = await db.from('profiles').update(profileUpdates).eq('id', currentUserData.id).select('*, plan:workout_plans(plan_data)').single();
                 if (error) throw error;
-                currentUserData = { ...currentUserData, ...data };
+                currentUserData = data;
                 showToast('پروفایل با موفقیت به‌روز شد!', 'success');
             } catch (error) {
                 showToast(`خطا: ${error.message}`, 'error');
@@ -469,7 +487,6 @@
                 if (allDone) await updateSessionAndStreak();
             } catch (error) {
                 showToast(`خطا در ذخیره وضعیت تمرین: ${error.message}`, 'error');
-                // Revert UI on error
                 const exercise = currentUserData.plan[0].plan_data.schedule[day][parseInt(index)];
                 exercise.done = !isChecked;
                 checkbox.checked = !isChecked;
@@ -477,9 +494,6 @@
             }
         }
 
-        // =================================================================
-        // 4. AUTHENTICATION & DATA LOADING
-        // =================================================================
         async function handleAuthAction() {
             const email = dom.emailInput.value.trim();
             const password = dom.passwordInput.value.trim();
