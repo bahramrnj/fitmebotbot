@@ -35,7 +35,7 @@
         button:disabled { opacity: 0.5; cursor: not-allowed; }
     </style>
 </head>
-<body>
+<body class="antialiased">
 
     <div id="app-container" class="container mx-auto p-4 max-w-lg min-h-screen flex flex-col">
 
@@ -89,7 +89,7 @@
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
             <span class="text-xs font-medium">پروفایل</span>
         </button>
-        <button data-view="client-dashboard-view" data-title="داشبورد" class="nav-btn active flex flex-col items-center gap-1 transition-all w-20">
+        <button data-view="home-view" data-title="داشبورد" class="nav-btn active flex flex-col items-center gap-1 transition-all w-20">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
             <span class="text-xs font-medium">خانه</span>
         </button>
@@ -103,7 +103,7 @@
 
     <script type="module">
         // =================================================================
-        // SETUP & INITIALIZATION
+        // 1. SETUP & INITIALIZATION
         // =================================================================
         const { createClient } = supabase;
         const SUPABASE_URL = 'https://lsitdkehiqcexrugjmjj.supabase.co'; 
@@ -129,7 +129,7 @@
         const moonIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>`;
 
         // =================================================================
-        // UTILITY & VIEW MANAGEMENT
+        // 2. UTILITY & VIEW MANAGEMENT
         // =================================================================
 
         function showToast(message, type = 'info') {
@@ -158,32 +158,30 @@
             dom.mainContent.querySelectorAll(':scope > div').forEach(v => v.classList.add('hidden'));
             const view = document.getElementById(viewId);
             if (view) view.classList.remove('hidden');
-            dom.viewTitle.textContent = title;
+            if (title) dom.viewTitle.textContent = title;
             dom.navBar.querySelectorAll('.nav-btn').forEach(btn => {
-                btn.classList.toggle('active', btn.dataset.view === viewId || (viewId === 'trainer-dashboard-view' && btn.dataset.view === 'client-dashboard-view'));
+                let isActive = btn.dataset.view === viewId;
+                if (viewId === 'trainer-dashboard-view' && btn.dataset.view === 'home-view') isActive = true;
+                if (viewId === 'client-dashboard-view' && btn.dataset.view === 'home-view') isActive = true;
+                btn.classList.toggle('active', isActive);
             });
         }
         
         function showScreen(screen) {
-            const screens = {
-                loading: dom.loadingView,
-                auth: dom.authView,
-                main: dom.mainContent,
-            };
+            const screens = { loading: dom.loadingView, auth: dom.authView, main: dom.mainContent };
             Object.values(screens).forEach(s => s.classList.add('hidden'));
             if(screens[screen]) screens[screen].classList.remove('hidden');
             dom.navBar.classList.toggle('hidden', screen !== 'main');
         }
 
-     
         // =================================================================
-        // RENDER FUNCTIONS
+        // 3. RENDER FUNCTIONS (These build the HTML for each view)
         // =================================================================
-
+        
         function renderClientDashboard() {
             const view = document.getElementById('client-dashboard-view');
             const streak = currentUserData.streaks?.daily || 0;
-            const plan = currentUserData.plan?.[0]?.plan_data;
+            const plan = currentUserData.plan?.[0]?.plan_data; // Fetched with profile
             const sessionsLeft = plan ? (plan.totalSessions || 0) - (plan.attendedSessions || 0) : '-';
             const todayPersian = new Intl.DateTimeFormat('fa-IR', { weekday: 'long' }).format(new Date());
 
@@ -201,21 +199,17 @@
         async function renderDailyWorkout() {
             const workoutListEl = document.getElementById('daily-workout-list');
             if (!workoutListEl) return;
-            
             const plan = currentUserData.plan?.[0]?.plan_data;
             if (!plan || !plan.schedule) {
                 workoutListEl.innerHTML = `<p class="text-center text-[var(--text-color-muted)] p-4">هنوز برنامه‌ای برای شما ثبت نشده است.</p>`;
                 return;
             }
-            
             const today = new Intl.DateTimeFormat('fa-IR', { weekday: 'long' }).format(new Date());
             const todaysWorkout = plan.schedule[today] || [];
-            
             if (todaysWorkout.length === 0) {
                 workoutListEl.innerHTML = `<div class="text-center p-4 rounded-lg bg-[var(--success-bg)] text-[var(--success-color)]">امروز روز استراحت است!</div>`;
                 return;
             }
-            
             workoutListEl.innerHTML = todaysWorkout.map((ex, i) => `
                 <div class="card p-3 flex items-center justify-between transition ${ex.done ? 'opacity-50' : ''}">
                     <div><p class="font-semibold">${ex.name}</p><p class="text-sm text-[var(--text-color-muted)]">${ex.sets} ست × ${ex.reps} تکرار</p></div>
@@ -224,10 +218,16 @@
             `).join('');
         }
 
-        function renderTrainerDashboard() {
+        async function renderTrainerDashboard() {
             const view = document.getElementById('trainer-dashboard-view');
-            view.innerHTML = `<div class="card p-4"><h3 class="text-lg font-bold">داشبورد مربی</h3><p class="text-sm text-[var(--text-color-muted)]">کد اتصال شما: <strong class="select-all">${currentUserData.trainer_code}</strong></p></div>`;
+            view.innerHTML = `<div class="card p-4"><h3 class="text-lg font-bold">داشبورد مربی</h3><p class="text-sm text-[var(--text-color-muted)]">کد اتصال شما: <strong class="select-all">${currentUserData.trainer_code}</strong></p></div><div class="card p-6 rounded-xl"><h3 class="text-xl font-bold mb-4">شاگردان شما</h3><div id="client-list" class="space-y-3">در حال بارگذاری...</div></div>`;
             showView('trainer-dashboard-view', 'داشبورد مربی');
+
+            const { data: clients, error } = await db.from('profiles').select('id, name').eq('linked_trainer_id', currentUserData.id);
+            const clientListEl = document.getElementById('client-list');
+            if(error) return clientListEl.innerHTML = `<p class="text-red-500">خطا در بارگذاری شاگردان</p>`;
+            if(clients.length === 0) return clientListEl.innerHTML = `<p class="text-[var(--text-color-muted)]">هنوز شاگردی به شما متصل نشده.</p>`;
+            clientListEl.innerHTML = clients.map(client => `<div class="card p-3"><p class="font-bold">${client.name}</p></div>`).join('');
         }
 
         function renderProfileView() {
@@ -247,71 +247,46 @@
                     <button id="save-profile-btn" class="w-full btn-primary font-bold py-3 rounded-lg mt-4">ذخیره تغییرات</button>
                 </div>`;
             document.getElementById('save-profile-btn').addEventListener('click', saveProfile);
+            showView('profile-view', 'پروفایل');
         }
 
-       async function saveProfile() {
-    const saveButton = document.getElementById('save-profile-btn');
-    if (!saveButton) return;
-
-    saveButton.disabled = true;
-    saveButton.textContent = 'در حال ذخیره...';
-
-    try {
-        const profileUpdates = {
-            name: document.getElementById('profile-name').value.trim(),
-            profile_data: {
-                height: document.getElementById('profile-height').value || null,
-                weight: document.getElementById('profile-weight').value || null,
-                age: document.getElementById('profile-age').value || null,
-            }
-        };
-
-        // فقط برای کاربر شاگرد، کد مربی را بررسی کن
-        if (currentUserData.role === 'client') {
-            const trainerCodeInput = document.getElementById('trainer-code');
-            if (trainerCodeInput && trainerCodeInput.value.trim()) {
-                const trainerCode = trainerCodeInput.value.trim();
-                const { data: trainer, error: trainerError } = await db.from('profiles')
-                    .select('id')
-                    .eq('trainer_code', trainerCode)
-                    .single();
-                
-                if (trainerError || !trainer) {
-                    showToast('کد مربی یافت نشد یا نامعتبر است.', 'error');
-                    saveButton.disabled = false;
-                    saveButton.textContent = 'ذخیره تغییرات';
-                    return;
+        async function saveProfile() {
+            const saveButton = document.getElementById('save-profile-btn');
+            saveButton.disabled = true;
+            saveButton.textContent = 'در حال ذخیره...';
+            try {
+                const profileUpdates = {
+                    name: document.getElementById('profile-name').value.trim(),
+                    profile_data: {
+                        height: document.getElementById('profile-height').value || null,
+                        weight: document.getElementById('profile-weight').value || null,
+                        age: document.getElementById('profile-age').value || null,
+                    }
+                };
+                if (currentUserData.role === 'client') {
+                    const trainerCodeInput = document.getElementById('trainer-code');
+                    if (trainerCodeInput && trainerCodeInput.value.trim()) {
+                        const { data: trainer, error } = await db.from('profiles').select('id').eq('trainer_code', trainerCodeInput.value.trim()).single();
+                        if (error || !trainer) throw new Error('کد مربی یافت نشد.');
+                        profileUpdates.linked_trainer_id = trainer.id;
+                    }
                 }
-                profileUpdates.linked_trainer_id = trainer.id;
+                const { data, error } = await db.from('profiles').update(profileUpdates).eq('id', currentUserData.id).select().single();
+                if (error) throw error;
+                currentUserData = { ...currentUserData, ...data };
+                showToast('پروفایل با موفقیت به‌روز شد!', 'success');
+            } catch (error) {
+                showToast(`خطا: ${error.message}`, 'error');
+            } finally {
+                saveButton.disabled = false;
+                saveButton.textContent = 'ذخیره تغییرات';
             }
         }
 
-        const { data, error } = await db.from('profiles')
-            .update(profileUpdates)
-            .eq('id', currentUserData.id)
-            .select()
-            .single();
-        
-        if (error) {
-            throw error;
-        }
-        
-        // داده‌های کاربر را در برنامه به‌روز می‌کنیم
-        currentUserData = { ...currentUserData, ...data };
-        showToast('پروفایل با موفقیت به‌روز شد!', 'success');
-
-    } catch (error) {
-        console.error("Error saving profile:", error);
-        showToast(`خطا در ذخیره پروفایل: ${error.message}`, 'error');
-    } finally {
-        // این بلاک تضمین می‌کند که دکمه همیشه به حالت اول برگردد
-        saveButton.disabled = false;
-        saveButton.textContent = 'ذخیره تغییرات';
-    }
-}
         async function renderChallengesView() {
             const view = document.getElementById('challenges-view');
             view.innerHTML = `<p class="text-center text-[var(--text-color-muted)]">در حال بارگذاری...</p>`;
+            showView('challenges-view', 'چالش‌ها');
             try {
                 const [challengesRes, achievementsRes] = await Promise.all([
                     db.from('challenges').select('*'),
@@ -326,144 +301,51 @@
                 }
                 view.innerHTML = allChallenges.map(challenge => {
                     const isCompleted = completedChallengeIds.has(challenge.id);
-                    return `<div class="card p-4 rounded-lg flex items-center gap-4 ${isCompleted ? 'opacity-60' : ''}"><div class="p-3 rounded-full ${isCompleted ? 'bg-[var(--success-color)]' : 'bg-[var(--accent-color)]'} text-white">...</div><div class="flex-grow"><h3 class="font-bold">${challenge.title}</h3><p class="text-sm text-[var(--text-color-muted)]">${challenge.description}</p></div>${isCompleted ? `...` : ''}</div>`;
+                    return `<div class="card p-4 rounded-lg flex items-center gap-4 ${isCompleted ? 'opacity-60' : ''}"><div class="p-3 rounded-full ${isCompleted ? 'bg-[var(--success-color)]' : 'bg-[var(--accent-color)]'} text-white"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"></path><circle cx="12" cy="10" r="3"></circle></svg></div><div class="flex-grow"><h3 class="font-bold">${challenge.title}</h3><p class="text-sm text-[var(--text-color-muted)]">${challenge.description}</p></div>${isCompleted ? `<div class="p-1 rounded-full bg-[var(--success-bg)] text-[var(--success-color)]"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></div>` : ''}</div>`;
                 }).join('');
             } catch (error) {
                 view.innerHTML = `<p class="text-red-500 text-center">${error.message}</p>`;
             }
         }
-           // =================================================================
-        // AUTHENTICATION & DATA LOADING
+        
+        // =================================================================
+        // 4. EVENT LISTENERS
         // =================================================================
 
-        async function handleAuthAction() {
-            const email = dom.emailInput.value.trim();
-            const password = dom.passwordInput.value.trim();
-            if (!email || !password) return showToast('ایمیل و رمز عبور الزامی است.', 'error');
-            dom.authActionBtn.disabled = true;
-            dom.authActionBtn.textContent = 'در حال بررسی...';
-
-            if (isRegisterMode) {
-                const name = dom.nameInput.value.trim();
-                const role = dom.roleSelect.value;
-                if (!name) {
-                    showToast('نام الزامی است.', 'error');
-                    dom.authActionBtn.disabled = false;
-                    dom.authActionBtn.textContent = 'ثبت نام';
-                    return;
-                }
-                const { data, error } = await db.auth.signUp({
-                    email, password, options: { data: { name, role } }
-                });
-                if (error) showToast(error.message, 'error');
-                else {
-                    showToast('ثبت نام موفق بود! لطفا ایمیل خود را برای تایید حساب کاربری چک کنید.', 'success');
-                    dom.toggleAuthModeBtn.click();
-                }
-            } else {
-                const { error } = await db.auth.signInWithPassword({ email, password });
-                if (error) showToast(error.message, 'error');
-            }
-            dom.authActionBtn.disabled = false;
-            dom.authActionBtn.textContent = isRegisterMode ? 'ثبت نام' : 'ورود';
-        }
-
-        async function loadAppData(user) {
-            console.log("Attempting to load app data for user:", user.id);
-            showScreen('loading');
+        function setupEventListeners() {
+            dom.themeToggleButton.addEventListener('click', toggleTheme);
+            dom.logoutBtn.addEventListener('click', () => db.auth.signOut());
+            dom.authActionBtn.addEventListener('click', handleAuthAction);
+            dom.toggleAuthModeBtn.addEventListener('click', () => {
+                isRegisterMode = !isRegisterMode;
+                dom.registerFields.classList.toggle('hidden', !isRegisterMode);
+                dom.authTitle.textContent = isRegisterMode ? 'ایجاد حساب جدید' : 'ورود به حساب کاربری';
+                dom.authActionBtn.textContent = isRegisterMode ? 'ثبت نام' : 'ورود';
+                dom.authPromptText.textContent = isRegisterMode ? 'حساب دارید؟' : 'حساب ندارید؟';
+                dom.toggleAuthModeBtn.textContent = isRegisterMode ? 'وارد شوید' : 'ثبت نام کنید';
+            });
             
-            let profileData = null;
-            let attempts = 0;
-            while (!profileData && attempts < 5) {
-                const { data, error } = await db.from('profiles').select('*, plan:workout_plans(*)').eq('id', user.id).single();
-                if (data) { profileData = data; break; }
-                if (error && error.code !== 'PGRST116') {
-                    console.error("Critical error fetching profile:", error);
-                    showToast(`خطای جدی در بارگذاری پروفایل: ${error.message}`, 'error');
-                    return db.auth.signOut();
+            dom.navBar.addEventListener('click', (e) => {
+                const button = e.target.closest('.nav-btn');
+                if (!button || !currentUserData) return;
+                
+                const viewId = button.dataset.view;
+                switch (viewId) {
+                    case 'home-view':
+                        currentUserData.role === 'trainer' ? renderTrainerDashboard() : renderClientDashboard();
+                        break;
+                    case 'profile-view':
+                        renderProfileView();
+                        break;
+                    case 'challenges-view':
+                        renderChallengesView();
+                        break;
                 }
-                attempts++;
-                await new Promise(resolve => setTimeout(resolve, 500));
-            }
-
-            if (!profileData) {
-                showToast('خطا: پروفایل شما یافت نشد. لطفا دوباره وارد شوید.', 'error');
-                return db.auth.signOut();
-            }
-
-            currentUserData = profileData;
-            showScreen('main');
-
-            if (currentUserData.role === 'trainer') renderTrainerDashboard();
-            else renderClientDashboard();
+            });
         }
-        
+
         // =================================================================
-        // EVENT LISTENERS
-        // =================================================================
-function setupEventListeners() {
-    // اتصال رویدادها به دکمه‌های ثابت
-    dom.themeToggleButton.addEventListener('click', toggleTheme);
-    dom.logoutBtn.addEventListener('click', () => db.auth.signOut());
-    dom.authActionBtn.addEventListener('click', handleAuthAction);
-
-    // اتصال رویداد به دکمه تغییر حالت ورود/ثبت‌نام
-    dom.toggleAuthModeBtn.addEventListener('click', () => {
-        isRegisterMode = !isRegisterMode;
-        dom.registerFields.classList.toggle('hidden', !isRegisterMode);
-        dom.authTitle.textContent = isRegisterMode ? 'ایجاد حساب جدید' : 'ورود به حساب کاربری';
-        dom.authActionBtn.textContent = isRegisterMode ? 'ثبت نام' : 'ورود';
-        dom.authPromptText.textContent = isRegisterMode ? 'حساب کاربری دارید؟' : 'حساب کاربری ندارید؟';
-        dom.toggleAuthModeBtn.textContent = isRegisterMode ? 'وارد شوید' : 'ثبت نام کنید';
-    });
-    
-    // اتصال رویداد اصلی به کل نوار ناوبری پایین صفحه
-    dom.navBar.addEventListener('click', (e) => {
-        const button = e.target.closest('.nav-btn');
-        // اگر روی دکمه کلیک نشده یا کاربر هنوز وارد نشده، هیچ کاری نکن
-        if (!button || !currentUserData) return;
-        
-        const viewId = button.dataset.view;
-        const title = button.dataset.title;
-
-        // ابتدا صفحه مورد نظر را نمایش می‌دهیم
-        showView(viewId, title);
-
-        // سپس بر اساس اینکه کدام دکمه کلیک شده، محتوای آن را رندر می‌کنیم
-        switch (viewId) {
-            case 'client-dashboard-view':
-                // اگر کاربر شاگرد است، داشبورد شاگرد را نشان بده
-                if (currentUserData.role === 'client') {
-                    renderClientDashboard();
-                }
-                break;
-            case 'trainer-dashboard-view':
-                 // اگر کاربر مربی است، داشبورد مربی را نشان بده
-                if (currentUserData.role === 'trainer') {
-                    renderTrainerDashboard();
-                }
-                break;
-            case 'profile-view':
-                // در هر صورت، صفحه پروفایل را رندر کن
-                renderProfileView();
-                break;
-            case 'challenges-view':
-                 // در هر صورت، صفحه چالش‌ها را رندر کن
-                renderChallengesView();
-                break;
-        }
-    });
-
-    // این شنونده برای چک‌باکس‌های تمرینات است که به صورت داینامیک ساخته می‌شوند
-    document.body.addEventListener('change', e => {
-        if (e.target.matches('.exercise-checkbox')) {
-            // toggleExerciseStatus(e); // این تابع را بعدا کامل خواهیم کرد
-            console.log('Checkbox changed!', e.target.checked);
-        }
-    });
-}
-        // =================================================================
-        // APP START
+        // 5. APP START
         // =================================================================
         
         function main() {
@@ -487,6 +369,7 @@ function setupEventListeners() {
             main();
         } catch (e) {
             dom.loadingText.textContent = `خطای مهلک: ${e.message}`;
+            console.error("Fatal initialization error:", e);
         }
 
     </script>
