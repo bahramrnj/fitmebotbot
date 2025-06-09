@@ -369,49 +369,71 @@
         // =================================================================
 
         function setupEventListeners() {
-            dom.themeToggleButton.addEventListener('click', toggleTheme);
-            dom.logoutBtn.addEventListener('click', () => db.auth.signOut());
-            dom.authActionBtn.addEventListener('click', handleAuthAction);
+    // --- دستور عیب‌یابی جدید ---
+    console.log("در حال تنظیم شنونده‌ها...");
+    if (dom.navBar) {
+        console.log("✅ عنصر 'navBar' با موفقیت پیدا شد.", dom.navBar);
+    } else {
+        console.error("❌ خطای حیاتی: عنصر 'navBar' (با آیدی bottom-nav-bar) در HTML پیدا نشد!");
+        return; // اجرای تابع را متوقف می‌کنیم چون عنصر اصلی وجود ندارد
+    }
 
-            dom.toggleAuthModeBtn.addEventListener('click', () => {
-                isRegisterMode = !isRegisterMode;
-                dom.registerFields.classList.toggle('hidden', !isRegisterMode);
-                dom.authTitle.textContent = isRegisterMode ? 'ایجاد حساب جدید' : 'ورود به حساب کاربری';
-                dom.authActionBtn.textContent = isRegisterMode ? 'ثبت نام' : 'ورود';
-                dom.authPromptText.textContent = isRegisterMode ? 'حساب کاربری دارید؟' : 'حساب کاربری ندارید؟';
-                dom.toggleAuthModeBtn.textContent = isRegisterMode ? 'وارد شوید' : 'ثبت نام کنید';
-            });
-            
-            dom.navBar.addEventListener('click', (e) => {
-            const button = e.target.closest('.nav-btn');
-            if (!button || !currentUserData) return;
-            
-            const viewId = button.dataset.view;
-            const title = button.dataset.title;
+    // بقیه تابع بدون تغییر باقی می‌ماند
+    dom.themeToggleButton.addEventListener('click', toggleTheme);
+    dom.logoutBtn.addEventListener('click', () => db.auth.signOut());
+    dom.authActionBtn.addEventListener('click', handleAuthAction);
 
-            // --- شروع بخش اصلاح شده ---
+    dom.toggleAuthModeBtn.addEventListener('click', () => {
+        isRegisterMode = !isRegisterMode;
+        dom.registerFields.classList.toggle('hidden', !isRegisterMode);
+        dom.authTitle.textContent = isRegisterMode ? 'ایجاد حساب جدید' : 'ورود به حساب کاربری';
+        dom.authActionBtn.textContent = isRegisterMode ? 'ثبت نام' : 'ورود';
+        dom.authPromptText.textContent = isRegisterMode ? 'حساب کاربری دارید؟' : 'حساب کاربری ندارید؟';
+        dom.toggleAuthModeBtn.textContent = isRegisterMode ? 'وارد شوید' : 'ثبت نام کنید';
+    });
+    
+    dom.navBar.addEventListener('click', (e) => {
+        console.log("1. کلیک روی نوار ناوبری شناسایی شد.");
+        const button = e.target.closest('.nav-btn');
+        if (!button) {
+            console.error("خطا: کلیک روی دکمه تشخیص داده نشد.");
+            return;
+        }
+        if (!currentUserData) {
+            console.error("خطا: اطلاعات کاربر (currentUserData) هنوز بارگذاری نشده است.");
+            return;
+        }
+        console.log("2. دکمه پیدا شد و اطلاعات کاربر موجود است.");
+        const viewId = button.dataset.view;
+        const title = button.dataset.title;
+        console.log(`3. درخواست برای نمایش صفحه: ${viewId} با عنوان: ${title}`);
+        showView(viewId, title);
+        console.log(`4. تابع showView برای '${viewId}' اجرا شد.`);
+        switch (viewId) {
+            case 'client-dashboard-view':
+                console.log("5. رندر کردن داشبورد شاگرد...");
+                renderClientDashboard();
+                break;
+            case 'trainer-dashboard-view':
+                console.log("5. رندر کردن داشبورد مربی...");
+                renderTrainerDashboard();
+                break;
+            case 'profile-view':
+                console.log("5. رندر کردن پروفایل...");
+                renderProfileView();
+                break;
+            case 'challenges-view':
+                console.log("5. رندر کردن چالش‌ها...");
+                renderChallengesView();
+                break;
+            default:
+                console.error("خطای مهم: viewId ناشناخته است:", viewId);
+        }
+        console.log("6. کار پردازش کلیک تمام شد.");
+    });
+}
+         
 
-            // 1. ابتدا صفحه مورد نظر را نمایش می‌دهیم
-            showView(viewId, title);
-
-            // 2. سپس محتوای آن صفحه را در صورت نیاز رندر می‌کنیم
-            // (این ساختار تضمین می‌کند که هر دکمه کار خود را به درستی انجام دهد)
-            switch (viewId) {
-                case 'client-dashboard-view':
-                    renderClientDashboard();
-                    break;
-                case 'trainer-dashboard-view':
-                    renderTrainerDashboard();
-                    break;
-                case 'profile-view':
-                    renderProfileView();
-                    break;
-                case 'challenges-view':
-                    renderChallengesView();
-                    break;
-            }
-            // --- پایان بخش اصلاح شده ---
-        });
         // =================================================================
         // INITIALIZATION
         // =================================================================
