@@ -25,6 +25,7 @@
         body { font-family: 'Vazirmatn', sans-serif; background-color: var(--bg-color); color: var(--text-color); transition: background-color 0.3s, color 0.3s; padding-bottom: 5rem; }
         .card { background-color: var(--card-bg); backdrop-filter: blur(12px); border: 1px solid var(--card-border); transition: all 0.3s; }
         .btn-primary { background-color: var(--accent-color); color: var(--accent-text-color); }
+        .btn-secondary { background-color: var(--text-color-muted); color: var(--bg-color); }
         .input-base { background-color: var(--input-bg); color: var(--text-color); border: 1px solid var(--input-border); }
         .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background-color: var(--card-bg); backdrop-filter: blur(12px); border-top: 1px solid var(--card-border); z-index: 50; }
         .nav-btn { color: var(--text-color-muted); }
@@ -85,19 +86,36 @@
     </div>
 
     <nav id="bottom-nav-bar" class="bottom-nav max-w-lg mx-auto h-20 flex justify-around items-center shadow-lg hidden">
-        <button data-view="profile-view" data-title="پروفایل" class="nav-btn flex flex-col items-center gap-1 transition-all w-20">
+        <button data-view="profile-view" class="nav-btn flex flex-col items-center gap-1 transition-all w-20">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
             <span class="text-xs font-medium">پروفایل</span>
         </button>
-        <button data-view="home-view" data-title="داشبورد" class="nav-btn active flex flex-col items-center gap-1 transition-all w-20">
+        <button data-view="home-view" class="nav-btn active flex flex-col items-center gap-1 transition-all w-20">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
             <span class="text-xs font-medium">خانه</span>
         </button>
-        <button data-view="challenges-view" data-title="چالش‌ها" class="nav-btn flex flex-col items-center gap-1 transition-all w-20">
+        <button data-view="challenges-view" class="nav-btn flex flex-col items-center gap-1 transition-all w-20">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
             <span class="text-xs font-medium">چالش‌ها</span>
         </button>
     </nav>
+
+    <!-- Plan Creation/Edit Modal -->
+    <div id="plan-modal" class="hidden fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-50 p-4">
+        <form id="plan-form" class="card rounded-xl p-6 w-full max-w-lg space-y-4 flex flex-col max-h-[90vh]">
+            <h3 id="plan-modal-title" class="text-xl font-bold border-b border-[var(--card-border)] pb-3 flex-shrink-0">ایجاد / ویرایش برنامه</h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 flex-shrink-0">
+                <input type="number" id="plan-total-sessions" placeholder="تعداد کل جلسات" class="p-3 rounded-lg input-base">
+                <input type="date" id="plan-start-date" title="تاریخ شروع" class="p-3 rounded-lg input-base">
+                <input type="date" id="plan-end-date" title="تاریخ پایان" class="p-3 rounded-lg input-base">
+            </div>
+            <div id="plan-weekly-schedule" class="flex-grow overflow-y-auto space-y-4 p-2 border-t border-b border-[var(--card-border)]"></div>
+            <div class="flex gap-4 flex-shrink-0 pt-4 border-t border-[var(--card-border)]">
+                <button id="cancel-plan-btn" type="button" class="w-1/2 btn-secondary font-bold py-2 rounded-lg">لغو</button>
+                <button id="save-plan-btn" type="submit" class="w-1/2 btn-primary font-bold py-2 rounded-lg">ذخیره برنامه</button>
+            </div>
+        </form>
+    </div>
 
     <div id="toast-notification" class="toast"></div>
 
@@ -123,10 +141,12 @@
         };
 
         let currentUserData = null;
+        let currentEditingClient = null;
         let isRegisterMode = false;
         
         const sunIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>`;
         const moonIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>`;
+        const WEEK_DAYS = ['شنبه', 'یکشنبه', 'دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنج‌شنبه', 'جمعه'];
 
         // =================================================================
         // 2. FUNCTION DEFINITIONS
@@ -178,7 +198,7 @@
         function renderClientDashboard() {
             const view = document.getElementById('client-dashboard-view');
             const streak = currentUserData.streaks?.daily || 0;
-            const plan = currentUserData.plan?.[0]?.plan_data; // Use optional chaining
+            const plan = currentUserData.plan?.[0]?.plan_data;
             const sessionsLeft = plan ? (plan.totalSessions || 0) - (plan.attendedSessions || 0) : '-';
             const todayPersian = new Intl.DateTimeFormat('fa-IR', { weekday: 'long' }).format(new Date());
             view.innerHTML = `
@@ -195,7 +215,7 @@
         async function renderDailyWorkout() {
             const workoutListEl = document.getElementById('daily-workout-list');
             if (!workoutListEl) return;
-            const plan = currentUserData.plan?.[0]?.plan_data; // Use optional chaining
+            const plan = currentUserData.plan?.[0]?.plan_data;
             if (!plan || !plan.schedule) {
                 workoutListEl.innerHTML = `<p class="text-center text-[var(--text-color-muted)] p-4">هنوز برنامه‌ای برای شما ثبت نشده است.</p>`;
                 return;
@@ -222,7 +242,13 @@
             const clientListEl = document.getElementById('client-list');
             if(error) return clientListEl.innerHTML = `<p class="text-red-500">خطا در بارگذاری شاگردان</p>`;
             if(clients.length === 0) return clientListEl.innerHTML = `<p class="text-[var(--text-color-muted)]">هنوز شاگردی به شما متصل نشده.</p>`;
-            clientListEl.innerHTML = clients.map(client => `<div class="card p-3"><p class="font-bold">${client.name}</p></div>`).join('');
+            clientListEl.innerHTML = clients.map(client => {
+                const clientCard = document.createElement('div');
+                clientCard.className = 'card p-3 cursor-pointer hover:border-[var(--accent-color)]';
+                clientCard.innerHTML = `<p class="font-bold">${client.name}</p>`;
+                clientCard.addEventListener('click', () => openPlanModal(client));
+                return clientCard.outerHTML;
+            }).join('');
         }
 
         function renderProfileView() {
@@ -268,7 +294,6 @@
                 }
                 const { data, error } = await db.from('profiles').update(profileUpdates).eq('id', currentUserData.id).select().single();
                 if (error) throw error;
-                // Update local data with the new info. Important for reactivity.
                 currentUserData = { ...currentUserData, ...data };
                 showToast('پروفایل با موفقیت به‌روز شد!', 'success');
             } catch (error) {
@@ -306,6 +331,86 @@
             }
         }
         
+        async function openPlanModal(client) {
+            currentEditingClient = client;
+            const modal = document.getElementById('plan-modal');
+            const form = document.getElementById('plan-form');
+            form.reset();
+            document.getElementById('plan-modal-title').textContent = `برنامه ورزشی برای ${client.name}`;
+
+            const scheduleContainer = document.getElementById('plan-weekly-schedule');
+            scheduleContainer.innerHTML = WEEK_DAYS.map(day => `<div class="p-3 border border-[var(--input-border)] rounded-lg bg-[var(--bg-color)] mb-4"><h4 class="text-md font-bold mb-2">${day}</h4><div class="space-y-2" data-day="${day}"></div><button type="button" class="add-exercise-btn mt-2 text-sm text-[var(--accent-color)] hover:underline" data-day="${day}">+ افزودن تمرین</button></div>`).join('');
+
+            const { data: plan } = await db.from('workout_plans').select('*').eq('client_id', client.id).single();
+
+            if (plan?.plan_data) {
+                const { plan_data: planData } = plan;
+                document.getElementById('plan-total-sessions').value = planData.totalSessions || '';
+                document.getElementById('plan-start-date').value = planData.startDate || '';
+                document.getElementById('plan-end-date').value = planData.endDate || '';
+                Object.keys(planData.schedule || {}).forEach(day => {
+                    const dayContainer = scheduleContainer.querySelector(`div[data-day="${day}"]`);
+                    if(dayContainer) planData.schedule[day].forEach(ex => addExerciseInput(dayContainer, ex));
+                });
+            }
+            modal.classList.remove('hidden');
+        }
+
+        function addExerciseInput(container, exercise = { name: '', sets: '', reps: '' }) {
+            const exerciseNode = document.createElement('div');
+            exerciseNode.className = 'exercise-item flex gap-2 items-center';
+            exerciseNode.innerHTML = `<input type="text" value="${exercise.name}" placeholder="نام تمرین" class="w-1/2 p-2 rounded-lg input-base"><input type="text" value="${exercise.sets}" placeholder="ست" class="w-1/4 p-2 rounded-lg input-base text-center"><input type="text" value="${exercise.reps}" placeholder="تکرار" class="w-1/4 p-2 rounded-lg input-base text-center"><button type="button" class="remove-exercise-btn text-red-500 hover:text-red-400 p-1">✖</button>`;
+            container.appendChild(exerciseNode);
+        }
+
+        async function savePlan(event) {
+            event.preventDefault();
+            const btn = document.getElementById('save-plan-btn');
+            btn.disabled = true;
+            btn.textContent = 'در حال ذخیره...';
+
+            try {
+                const clientId = currentEditingClient.id;
+                const { data: existingPlan } = await db.from('workout_plans').select('plan_data').eq('client_id', clientId).single();
+                
+                const schedule = {};
+                WEEK_DAYS.forEach(day => {
+                    schedule[day] = Array.from(document.querySelectorAll(`#plan-weekly-schedule div[data-day="${day}"] .exercise-item`)).map(item => ({
+                        name: item.querySelector('input[placeholder="نام تمرین"]').value.trim(),
+                        sets: item.querySelector('input[placeholder="ست"]').value.trim(),
+                        reps: item.querySelector('input[placeholder="تکرار"]').value.trim(),
+                        done: false
+                    })).filter(ex => ex.name);
+                });
+
+                const planData = {
+                    totalSessions: parseInt(document.getElementById('plan-total-sessions').value) || 0,
+                    startDate: document.getElementById('plan-start-date').value,
+                    endDate: document.getElementById('plan-end-date').value,
+                    attendedSessions: existingPlan?.plan_data?.attendedSessions || 0,
+                    attendedDates: existingPlan?.plan_data?.attendedDates || [],
+                    schedule
+                };
+                
+                const { error } = await db.from('workout_plans').upsert({ 
+                    client_id: clientId, 
+                    trainer_id: currentUserData.id, 
+                    plan_data: planData 
+                }, { onConflict: 'client_id' });
+
+                if (error) throw error;
+                
+                showToast('برنامه با موفقیت ذخیره شد!', 'success');
+                document.getElementById('plan-modal').classList.add('hidden');
+                renderTrainerDashboard(); // Refresh the dashboard
+            } catch (error) {
+                showToast(`خطا در ذخیره برنامه: ${error.message}`, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'ذخیره برنامه';
+            }
+        }
+
         // =================================================================
         // 4. AUTHENTICATION & DATA LOADING
         // =================================================================
@@ -324,9 +429,7 @@
                     dom.authActionBtn.textContent = 'ثبت نام';
                     return;
                 }
-                const { error } = await db.auth.signUp({
-                    email, password, options: { data: { name, role } }
-                });
+                const { error } = await db.auth.signUp({ email, password, options: { data: { name, role } } });
                 if (error) showToast(error.message, 'error');
                 else {
                     showToast('ثبت نام موفق بود! لطفا ایمیل خود را برای تایید حساب کاربری چک کنید.', 'success');
@@ -345,19 +448,8 @@
             let profileData = null;
             let attempts = 0;
             while (!profileData && attempts < 5) {
-                // FIX: Separated the queries. First fetch profile.
-                const { data, error } = await db.from('profiles').select('*').eq('id', user.id).single();
-                
-                if (data) { 
-                    profileData = data;
-                    // Now fetch the plan separately if the user is a client
-                    if(profileData.role === 'client') {
-                        const { data: planData, error: planError } = await db.from('workout_plans').select('*').eq('client_id', user.id);
-                        if(planError) console.error("Could not fetch plan:", planError);
-                        else profileData.plan = planData; // Attach plan to profile data
-                    }
-                    break; 
-                }
+                const { data, error } = await db.from('profiles').select('*, plan:workout_plans(plan_data)').eq('id', user.id).single();
+                if (data) { profileData = data; break; }
                 if (error && error.code !== 'PGRST116') {
                     showToast('خطا در ارتباط با دیتابیس.', 'error');
                     await db.auth.signOut();
@@ -372,11 +464,8 @@
             }
             currentUserData = profileData;
             showScreen('main');
-            if (currentUserData.role === 'trainer') {
-                renderTrainerDashboard();
-            } else {
-                renderClientDashboard();
-            }
+            if (currentUserData.role === 'trainer') renderTrainerDashboard();
+            else renderClientDashboard();
         }
         
         // =================================================================
@@ -411,6 +500,14 @@
                         break;
                 }
             });
+
+            // Event delegation for modal buttons
+            document.body.addEventListener('click', e => {
+                if (e.target.matches('#cancel-plan-btn')) document.getElementById('plan-modal').classList.add('hidden');
+                if (e.target.matches('.add-exercise-btn')) addExerciseInput(e.target.previousElementSibling);
+                if (e.target.matches('.remove-exercise-btn')) e.target.closest('.exercise-item').remove();
+            });
+            document.getElementById('plan-form').addEventListener('submit', savePlan);
         }
 
         function main() {
