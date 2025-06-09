@@ -401,38 +401,67 @@
         // =================================================================
         // EVENT LISTENERS
         // =================================================================
+function setupEventListeners() {
+    // اتصال رویدادها به دکمه‌های ثابت
+    dom.themeToggleButton.addEventListener('click', toggleTheme);
+    dom.logoutBtn.addEventListener('click', () => db.auth.signOut());
+    dom.authActionBtn.addEventListener('click', handleAuthAction);
 
-        function setupEventListeners() {
-            dom.themeToggleButton.addEventListener('click', toggleTheme);
-            dom.logoutBtn.addEventListener('click', () => db.auth.signOut());
-            dom.authActionBtn.addEventListener('click', handleAuthAction);
-            dom.toggleAuthModeBtn.addEventListener('click', () => {
-                isRegisterMode = !isRegisterMode;
-                dom.registerFields.classList.toggle('hidden', !isRegisterMode);
-                dom.authTitle.textContent = isRegisterMode ? 'ایجاد حساب جدید' : 'ورود';
-                dom.authActionBtn.textContent = isRegisterMode ? 'ثبت نام' : 'ورود';
-                dom.authPromptText.textContent = isRegisterMode ? 'حساب دارید؟' : 'حساب ندارید؟';
-                dom.toggleAuthModeBtn.textContent = isRegisterMode ? 'وارد شوید' : 'ثبت نام کنید';
-            });
-            
-            dom.navBar.addEventListener('click', (e) => {
-                const button = e.target.closest('.nav-btn');
-                if (!button || !currentUserData) return;
-                const viewId = button.dataset.view;
-                const title = button.dataset.title;
-                if (viewId === 'trainer-dashboard-view' && currentUserData.role === 'client') return;
-                if (viewId === 'client-dashboard-view' && currentUserData.role === 'trainer') {
+    // اتصال رویداد به دکمه تغییر حالت ورود/ثبت‌نام
+    dom.toggleAuthModeBtn.addEventListener('click', () => {
+        isRegisterMode = !isRegisterMode;
+        dom.registerFields.classList.toggle('hidden', !isRegisterMode);
+        dom.authTitle.textContent = isRegisterMode ? 'ایجاد حساب جدید' : 'ورود به حساب کاربری';
+        dom.authActionBtn.textContent = isRegisterMode ? 'ثبت نام' : 'ورود';
+        dom.authPromptText.textContent = isRegisterMode ? 'حساب کاربری دارید؟' : 'حساب کاربری ندارید؟';
+        dom.toggleAuthModeBtn.textContent = isRegisterMode ? 'وارد شوید' : 'ثبت نام کنید';
+    });
+    
+    // اتصال رویداد اصلی به کل نوار ناوبری پایین صفحه
+    dom.navBar.addEventListener('click', (e) => {
+        const button = e.target.closest('.nav-btn');
+        // اگر روی دکمه کلیک نشده یا کاربر هنوز وارد نشده، هیچ کاری نکن
+        if (!button || !currentUserData) return;
+        
+        const viewId = button.dataset.view;
+        const title = button.dataset.title;
+
+        // ابتدا صفحه مورد نظر را نمایش می‌دهیم
+        showView(viewId, title);
+
+        // سپس بر اساس اینکه کدام دکمه کلیک شده، محتوای آن را رندر می‌کنیم
+        switch (viewId) {
+            case 'client-dashboard-view':
+                // اگر کاربر شاگرد است، داشبورد شاگرد را نشان بده
+                if (currentUserData.role === 'client') {
+                    renderClientDashboard();
+                }
+                break;
+            case 'trainer-dashboard-view':
+                 // اگر کاربر مربی است، داشبورد مربی را نشان بده
+                if (currentUserData.role === 'trainer') {
                     renderTrainerDashboard();
-                    return;
                 }
-                switch (viewId) {
-                    case 'client-dashboard-view': renderClientDashboard(); break;
-                    case 'profile-view': renderProfileView(); break;
-                    case 'challenges-view': renderChallengesView(); break;
-                }
-            });
+                break;
+            case 'profile-view':
+                // در هر صورت، صفحه پروفایل را رندر کن
+                renderProfileView();
+                break;
+            case 'challenges-view':
+                 // در هر صورت، صفحه چالش‌ها را رندر کن
+                renderChallengesView();
+                break;
         }
+    });
 
+    // این شنونده برای چک‌باکس‌های تمرینات است که به صورت داینامیک ساخته می‌شوند
+    document.body.addEventListener('change', e => {
+        if (e.target.matches('.exercise-checkbox')) {
+            // toggleExerciseStatus(e); // این تابع را بعدا کامل خواهیم کرد
+            console.log('Checkbox changed!', e.target.checked);
+        }
+    });
+}
         // =================================================================
         // APP START
         // =================================================================
