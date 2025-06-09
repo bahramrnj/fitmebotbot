@@ -32,19 +32,18 @@
         .hidden { display: none; }
         .toast { position: fixed; bottom: -100px; left: 50%; transform: translateX(-50%); padding: 12px 24px; border-radius: 8px; color: white; z-index: 1000; opacity: 0; transition: all 0.4s ease-in-out; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
         .toast.show { opacity: 1; bottom: 6rem; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
     </style>
 </head>
 <body>
 
     <div id="app-container" class="container mx-auto p-4 max-w-lg min-h-screen flex flex-col">
 
-        <!-- ===== Loading View ===== -->
         <div id="loading-view" class="flex flex-col items-center justify-center flex-grow">
             <svg class="animate-spin h-8 w-8 text-[var(--accent-color)]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
             <p id="loading-text" class="mt-2 text-[var(--text-color-muted)]">در حال بارگذاری...</p>
         </div>
 
-        <!-- ===== Auth View ===== -->
         <div id="auth-view" class="hidden flex-grow flex flex-col justify-center">
              <div class="text-center mb-8">
                  <h1 class="text-4xl font-bold">به FitPlan خوش آمدید</h1>
@@ -68,14 +67,13 @@
             </div>
         </div>
 
-        <!-- ===== Main Content Area ===== -->
         <div id="main-content" class="hidden flex-grow w-full">
             <header id="app-header" class="flex items-center justify-between mb-6">
-                <button id="logout-btn" class="p-2" title="خروج">
+                <button id="logout-btn" class="p-2 text-[var(--text-color-muted)] hover:text-[var(--text-color)]" title="خروج">
                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
                 </button>
                 <h2 id="view-title" class="text-xl font-bold">داشبورد</h2>
-                <button id="theme-toggle-btn" class="p-2" title="تغییر تم"></button>
+                <button id="theme-toggle-btn" class="p-2 text-[var(--text-color-muted)] hover:text-[var(--text-color)]" title="تغییر تم"></button>
             </header>
             
             <div id="client-dashboard-view" class="hidden space-y-6"></div>
@@ -86,17 +84,16 @@
 
     </div>
 
-    <!-- Bottom Navigation Bar -->
     <nav id="bottom-nav-bar" class="bottom-nav max-w-lg mx-auto h-20 flex justify-around items-center shadow-lg hidden">
-        <button data-view="profile-view" data-title="پروفایل" class="nav-btn flex flex-col items-center gap-1 transition-all">
+        <button data-view="profile-view" data-title="پروفایل" class="nav-btn flex flex-col items-center gap-1 transition-all w-20">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
             <span class="text-xs font-medium">پروفایل</span>
         </button>
-        <button data-view="client-dashboard-view" data-title="داشبورد" class="nav-btn active flex flex-col items-center gap-1 transition-all">
+        <button data-view="client-dashboard-view" data-title="داشبورد" class="nav-btn active flex flex-col items-center gap-1 transition-all w-20">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
             <span class="text-xs font-medium">خانه</span>
         </button>
-        <button data-view="challenges-view" data-title="چالش‌ها" class="nav-btn flex flex-col items-center gap-1 transition-all">
+        <button data-view="challenges-view" data-title="چالش‌ها" class="nav-btn flex flex-col items-center gap-1 transition-all w-20">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
             <span class="text-xs font-medium">چالش‌ها</span>
         </button>
@@ -114,22 +111,14 @@
         let db;
 
         const dom = {
-            loadingView: document.getElementById('loading-view'),
-            loadingText: document.getElementById('loading-text'),
-            authView: document.getElementById('auth-view'),
-            mainContent: document.getElementById('main-content'),
-            navBar: document.getElementById('bottom-nav-bar'),
-            themeToggleButton: document.getElementById('theme-toggle-btn'),
-            viewTitle: document.getElementById('view-title'),
-            emailInput: document.getElementById('email-input'),
-            passwordInput: document.getElementById('password-input'),
-            nameInput: document.getElementById('name-input'),
-            roleSelect: document.getElementById('role-select'),
-            registerFields: document.getElementById('register-fields'),
-            authActionBtn: document.getElementById('auth-action-btn'),
-            toggleAuthModeBtn: document.getElementById('toggle-auth-mode-btn'),
-            authTitle: document.getElementById('auth-title'),
-            authPromptText: document.getElementById('auth-prompt-text'),
+            loadingView: document.getElementById('loading-view'), loadingText: document.getElementById('loading-text'),
+            authView: document.getElementById('auth-view'), mainContent: document.getElementById('main-content'),
+            navBar: document.getElementById('bottom-nav-bar'), themeToggleButton: document.getElementById('theme-toggle-btn'),
+            viewTitle: document.getElementById('view-title'), emailInput: document.getElementById('email-input'),
+            passwordInput: document.getElementById('password-input'), nameInput: document.getElementById('name-input'),
+            roleSelect: document.getElementById('role-select'), registerFields: document.getElementById('register-fields'),
+            authActionBtn: document.getElementById('auth-action-btn'), toggleAuthModeBtn: document.getElementById('toggle-auth-mode-btn'),
+            authTitle: document.getElementById('auth-title'), authPromptText: document.getElementById('auth-prompt-text'),
             logoutBtn: document.getElementById('logout-btn')
         };
 
@@ -140,17 +129,16 @@
         const moonIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>`;
 
         // =================================================================
-        // UTILITY FUNCTIONS
+        // UTILITY & VIEW MANAGEMENT
         // =================================================================
 
-       function showToast(message, type = 'info') {
-    const toast = document.getElementById('toast-notification');
-    toast.textContent = message;
-    // FIX: A space was added between "const" and "bgColor"
-    const bgColor = type === 'success' ? 'bg-green-600' : type === 'error' ? 'bg-red-600' : 'bg-gray-800';
-    toast.className = `toast show ${bgColor}`;
-    setTimeout(() => { toast.className = 'toast'; }, 3500);
-}
+        function showToast(message, type = 'info') {
+            const toast = document.getElementById('toast-notification');
+            toast.textContent = message;
+            const bgColor = type === 'success' ? 'bg-green-600' : type === 'error' ? 'bg-red-600' : 'bg-gray-800';
+            toast.className = `toast show ${bgColor}`;
+            setTimeout(() => { toast.className = 'toast'; }, 3500);
+        }
 
         function applyTheme(theme) {
             document.documentElement.setAttribute('data-theme', theme);
@@ -159,50 +147,32 @@
         }
 
         function toggleTheme() {
-            const newTheme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-            applyTheme(newTheme);
+            applyTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
         }
 
         function loadTheme() {
-            const savedTheme = localStorage.getItem('theme');
-            const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-            applyTheme(savedTheme || (systemPrefersDark ? 'dark' : 'light'));
+            applyTheme(localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));
         }
-
-        // =================================================================
-        // VIEW MANAGEMENT
-        // =================================================================
 
         function showView(viewId, title) {
             dom.mainContent.querySelectorAll(':scope > div').forEach(v => v.classList.add('hidden'));
             const view = document.getElementById(viewId);
             if (view) view.classList.remove('hidden');
             dom.viewTitle.textContent = title;
-
             dom.navBar.querySelectorAll('.nav-btn').forEach(btn => {
-                btn.classList.toggle('active', btn.dataset.view === viewId);
+                btn.classList.toggle('active', btn.dataset.view === viewId || (viewId === 'trainer-dashboard-view' && btn.dataset.view === 'client-dashboard-view'));
             });
         }
         
-        function showLoadingScreen() {
-            dom.authView.classList.add('hidden');
-            dom.mainContent.classList.add('hidden');
-            dom.navBar.classList.add('hidden');
-            dom.loadingView.classList.remove('hidden');
-        }
-
-        function showAuthScreen() {
-            dom.loadingView.classList.add('hidden');
-            dom.mainContent.classList.add('hidden');
-            dom.navBar.classList.add('hidden');
-            dom.authView.classList.remove('hidden');
-        }
-
-        function showMainScreen() {
-            dom.loadingView.classList.add('hidden');
-            dom.authView.classList.add('hidden');
-            dom.mainContent.classList.remove('hidden');
-            dom.navBar.classList.remove('hidden');
+        function showScreen(screen) {
+            const screens = {
+                loading: dom.loadingView,
+                auth: dom.authView,
+                main: dom.mainContent,
+            };
+            Object.values(screens).forEach(s => s.classList.add('hidden'));
+            if(screens[screen]) screens[screen].classList.remove('hidden');
+            dom.navBar.classList.toggle('hidden', screen !== 'main');
         }
 
         // =================================================================
@@ -228,16 +198,14 @@
                 const { data, error } = await db.auth.signUp({
                     email, password, options: { data: { name, role } }
                 });
-                if (error) {
-                    showToast(error.message, 'error');
-                } else {
+                if (error) showToast(error.message, 'error');
+                else {
                     showToast('ثبت نام موفق بود! لطفا ایمیل خود را برای تایید حساب کاربری چک کنید.', 'success');
                     dom.toggleAuthModeBtn.click();
                 }
             } else {
                 const { error } = await db.auth.signInWithPassword({ email, password });
                 if (error) showToast(error.message, 'error');
-                // On successful login, onAuthStateChange will handle the rest
             }
             dom.authActionBtn.disabled = false;
             dom.authActionBtn.textContent = isRegisterMode ? 'ثبت نام' : 'ورود';
@@ -245,270 +213,201 @@
 
         async function loadAppData(user) {
             console.log("Attempting to load app data for user:", user.id);
-            showLoadingScreen();
+            showScreen('loading');
             
             let profileData = null;
             let attempts = 0;
-            // This robust retry mechanism is CRUCIAL for handling replication lag after signup.
             while (!profileData && attempts < 5) {
-                console.log(`Fetching profile... Attempt #${attempts + 1}`);
-                const { data, error } = await db.from('profiles').select('*').eq('id', user.id).single();
-                
-                if (data) {
-                    console.log("Profile fetched successfully:", data);
-                    profileData = data;
-                    break;
-                }
-
-                if (error && error.code !== 'PGRST116') { // 'PGRST116' means "no rows found"
+                const { data, error } = await db.from('profiles').select('*, plan:workout_plans(*)').eq('id', user.id).single();
+                if (data) { profileData = data; break; }
+                if (error && error.code !== 'PGRST116') {
                     console.error("Critical error fetching profile:", error);
                     showToast(`خطای جدی در بارگذاری پروفایل: ${error.message}`, 'error');
-                    await db.auth.signOut();
-                    return;
+                    return db.auth.signOut();
                 }
-                
                 attempts++;
-                await new Promise(resolve => setTimeout(resolve, 500)); // Wait before retrying
+                await new Promise(resolve => setTimeout(resolve, 500));
             }
 
             if (!profileData) {
-                console.error("Could not fetch profile after multiple attempts.");
                 showToast('خطا: پروفایل شما یافت نشد. لطفا دوباره وارد شوید.', 'error');
-                await db.auth.signOut();
-                return;
+                return db.auth.signOut();
             }
 
             currentUserData = profileData;
-            showMainScreen();
+            showScreen('main');
 
-            // Set default view based on role
-            if (currentUserData.role === 'trainer') {
-                renderTrainerDashboard();
-            } else {
-                renderClientDashboard();
-            }
+            if (currentUserData.role === 'trainer') renderTrainerDashboard();
+            else renderClientDashboard();
         }
-          // =================================================================
-        // Profile
-        // =================================================================
-       async function saveProfile() {
-    console.log("Saving profile...");
-    const saveButton = document.getElementById('save-profile-btn');
-    saveButton.disabled = true;
-    saveButton.textContent = 'در حال ذخیره...';
-
-    const profileUpdates = {
-        name: document.getElementById('profile-name').value.trim(),
-        profile_data: {
-            height: document.getElementById('profile-height').value,
-            weight: document.getElementById('profile-weight').value,
-            age: document.getElementById('profile-age').value,
-        }
-    };
-
-    // If user is a client and entered a trainer code, try to link them
-    const trainerCodeInput = document.getElementById('trainer-code');
-    if (trainerCodeInput && trainerCodeInput.value.trim()) {
-        const trainerCode = trainerCodeInput.value.trim();
-        const { data: trainer, error: trainerError } = await db.from('profiles')
-            .select('id')
-            .eq('trainer_code', trainerCode)
-            .single();
-        
-        if (trainerError || !trainer) {
-            showToast('کد مربی یافت نشد یا نامعتبر است.', 'error');
-            saveButton.disabled = false;
-            saveButton.textContent = 'ذخیره تغییرات';
-            return;
-        }
-        profileUpdates.linked_trainer_id = trainer.id;
-    }
-
-    const { data, error } = await db.from('profiles')
-        .update(profileUpdates)
-        .eq('id', currentUserData.id)
-        .select()
-        .single();
-    
-    if (error) {
-        showToast(`خطا در ذخیره پروفایل: ${error.message}`, 'error');
-    } else {
-        currentUserData = data; // Update local user data with the new info
-        showToast('پروفایل با موفقیت به‌روز شد!', 'success');
-    }
-
-    saveButton.disabled = false;
-    saveButton.textContent = 'ذخیره تغییرات';
-}
         
         // =================================================================
         // RENDER FUNCTIONS
         // =================================================================
 
-     function renderProfileView() {
-    const view = document.getElementById('profile-view');
-    const profile = currentUserData.profile_data || {};
-    const isClient = currentUserData.role === 'client';
+        function renderClientDashboard() {
+            const view = document.getElementById('client-dashboard-view');
+            const streak = currentUserData.streaks?.daily || 0;
+            const plan = currentUserData.plan?.[0]?.plan_data;
+            const sessionsLeft = plan ? (plan.totalSessions || 0) - (plan.attendedSessions || 0) : '-';
+            const todayPersian = new Intl.DateTimeFormat('fa-IR', { weekday: 'long' }).format(new Date());
 
-    view.innerHTML = `
-        <div class="card p-6 space-y-4">
-            <h3 class="font-bold text-lg border-b border-[var(--card-border)] pb-3">پروفایل من</h3>
+            view.innerHTML = `
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="card p-4 rounded-xl text-center"><p class="text-4xl font-bold text-[var(--accent-color)]">${streak}</p><p class="text-sm text-[var(--text-color-muted)] mt-1">🔥 زنجیره روزانه</p></div>
+                    <div class="card p-4 rounded-xl text-center"><p class="text-4xl font-bold text-[var(--accent-color)]">${sessionsLeft >= 0 ? sessionsLeft : '-'}</p><p class="text-sm text-[var(--text-color-muted)] mt-1">📅 جلسات باقی‌مانده</p></div>
+                </div>
+                <div class="card p-6 rounded-xl"><h3 class="text-xl font-bold mb-4">تمرینات امروز (${todayPersian})</h3><div id="daily-workout-list" class="space-y-3"></div></div>
+            `;
+            renderDailyWorkout();
+            showView('client-dashboard-view', 'داشبورد');
+        }
+
+        async function renderDailyWorkout() {
+            const workoutListEl = document.getElementById('daily-workout-list');
+            if (!workoutListEl) return;
             
-            <div>
-                <label for="profile-name" class="text-sm text-[var(--text-color-muted)]">نام</label>
-                <input type="text" id="profile-name" value="${currentUserData.name || ''}" class="w-full mt-1 p-2 rounded-lg input-base">
-            </div>
-
-            <div class="grid grid-cols-3 gap-4">
-                <div>
-                    <label for="profile-height" class="text-sm text-[var(--text-color-muted)]">قد (cm)</label>
-                    <input type="number" id="profile-height" value="${profile.height || ''}" class="w-full mt-1 p-2 rounded-lg input-base">
-                </div>
-                <div>
-                    <label for="profile-weight" class="text-sm text-[var(--text-color-muted)]">وزن (kg)</label>
-                    <input type="number" id="profile-weight" value="${profile.weight || ''}" class="w-full mt-1 p-2 rounded-lg input-base">
-                </div>
-                <div>
-                    <label for="profile-age" class="text-sm text-[var(--text-color-muted)]">سن</label>
-                    <input type="number" id="profile-age" value="${profile.age || ''}" class="w-full mt-1 p-2 rounded-lg input-base">
-                </div>
-            </div>
-
-            ${isClient ? `
-            <div>
-                <hr class="border-[var(--input-border)] my-2">
-                <label for="trainer-code" class="text-sm text-[var(--text-color-muted)]">کد اتصال مربی</label>
-                <input type="text" id="trainer-code" placeholder="کدی که از مربی گرفته‌اید" class="w-full mt-1 p-2 rounded-lg input-base">
-            </div>
-            ` : ''}
+            const plan = currentUserData.plan?.[0]?.plan_data;
+            if (!plan || !plan.schedule) {
+                workoutListEl.innerHTML = `<p class="text-center text-[var(--text-color-muted)] p-4">هنوز برنامه‌ای برای شما ثبت نشده است.</p>`;
+                return;
+            }
             
-            <button id="save-profile-btn" class="w-full btn-primary font-bold py-3 rounded-lg mt-4 transition-transform hover:scale-105">ذخیره تغییرات</button>
-        </div>
-    `;
+            const today = new Intl.DateTimeFormat('fa-IR', { weekday: 'long' }).format(new Date());
+            const todaysWorkout = plan.schedule[today] || [];
+            
+            if (todaysWorkout.length === 0) {
+                workoutListEl.innerHTML = `<div class="text-center p-4 rounded-lg bg-[var(--success-bg)] text-[var(--success-color)]">امروز روز استراحت است!</div>`;
+                return;
+            }
+            
+            workoutListEl.innerHTML = todaysWorkout.map((ex, i) => `
+                <div class="card p-3 flex items-center justify-between transition ${ex.done ? 'opacity-50' : ''}">
+                    <div><p class="font-semibold">${ex.name}</p><p class="text-sm text-[var(--text-color-muted)]">${ex.sets} ست × ${ex.reps} تکرار</p></div>
+                    <input type="checkbox" data-day="${today}" data-index="${i}" class="exercise-checkbox w-6 h-6 rounded bg-gray-700 border-gray-600 text-[var(--accent-color)] focus:ring-[var(--accent-color)]" ${ex.done ? 'checked' : ''}>
+                </div>
+            `).join('');
+        }
 
-    // Add event listener for the new save button
-    document.getElementById('save-profile-btn').addEventListener('click', saveProfile);
-}
-    // Now, let's fetch and render the actual workout
-    renderDailyWorkout();
+        function renderTrainerDashboard() {
+            const view = document.getElementById('trainer-dashboard-view');
+            view.innerHTML = `<div class="card p-4"><h3 class="text-lg font-bold">داشبورد مربی</h3><p class="text-sm text-[var(--text-color-muted)]">کد اتصال شما: <strong class="select-all">${currentUserData.trainer_code}</strong></p></div>`;
+            showView('trainer-dashboard-view', 'داشبورد مربی');
+        }
 
-    showView('client-dashboard-view', 'داشبورد');
+        function renderProfileView() {
+            const view = document.getElementById('profile-view');
+            const profile = currentUserData.profile_data || {};
+            const isClient = currentUserData.role === 'client';
+            view.innerHTML = `
+                <div class="card p-6 space-y-4">
+                    <h3 class="font-bold text-lg border-b border-[var(--card-border)] pb-3">پروفایل من</h3>
+                    <div><label for="profile-name" class="text-sm text-[var(--text-color-muted)]">نام</label><input type="text" id="profile-name" value="${currentUserData.name || ''}" class="w-full mt-1 p-2 rounded-lg input-base"></div>
+                    <div class="grid grid-cols-3 gap-4">
+                        <div><label for="profile-height" class="text-sm text-[var(--text-color-muted)]">قد (cm)</label><input type="number" id="profile-height" value="${profile.height || ''}" class="w-full mt-1 p-2 rounded-lg input-base"></div>
+                        <div><label for="profile-weight" class="text-sm text-[var(--text-color-muted)]">وزن (kg)</label><input type="number" id="profile-weight" value="${profile.weight || ''}" class="w-full mt-1 p-2 rounded-lg input-base"></div>
+                        <div><label for="profile-age" class="text-sm text-[var(--text-color-muted)]">سن</label><input type="number" id="profile-age" value="${profile.age || ''}" class="w-full mt-1 p-2 rounded-lg input-base"></div>
+                    </div>
+                    ${isClient ? `<div><hr class="border-[var(--input-border)] my-2"><label for="trainer-code" class="text-sm text-[var(--text-color-muted)]">کد اتصال مربی</label><input type="text" id="trainer-code" placeholder="کدی که از مربی گرفته‌اید" class="w-full mt-1 p-2 rounded-lg input-base"></div>` : ''}
+                    <button id="save-profile-btn" class="w-full btn-primary font-bold py-3 rounded-lg mt-4">ذخیره تغییرات</button>
+                </div>`;
+            document.getElementById('save-profile-btn').addEventListener('click', saveProfile);
+        }
 
+        async function saveProfile() {
+            const saveButton = document.getElementById('save-profile-btn');
+            saveButton.disabled = true;
+            saveButton.textContent = 'در حال ذخیره...';
+            const profileUpdates = {
+                name: document.getElementById('profile-name').value.trim(),
+                profile_data: {
+                    height: document.getElementById('profile-height').value,
+                    weight: document.getElementById('profile-weight').value,
+                    age: document.getElementById('profile-age').value,
+                }
+            };
+            const trainerCodeInput = document.getElementById('trainer-code');
+            if (trainerCodeInput && trainerCodeInput.value.trim()) {
+                const { data: trainer, error } = await db.from('profiles').select('id').eq('trainer_code', trainerCodeInput.value.trim()).single();
+                if (error || !trainer) {
+                    showToast('کد مربی یافت نشد.', 'error');
+                    saveButton.disabled = false;
+                    saveButton.textContent = 'ذخیره تغییرات';
+                    return;
+                }
+                profileUpdates.linked_trainer_id = trainer.id;
+            }
+            const { data, error } = await db.from('profiles').update(profileUpdates).eq('id', currentUserData.id).select().single();
+            if (error) showToast(`خطا در ذخیره: ${error.message}`, 'error');
+            else {
+                currentUserData = { ...currentUserData, ...data };
+                showToast('پروفایل با موفقیت به‌روز شد!', 'success');
+            }
+            saveButton.disabled = false;
+            saveButton.textContent = 'ذخیره تغییرات';
+        }
 
-// We also need to add/update the renderDailyWorkout function.
-// Please add this function to your code, for example after renderClientDashboard.
-async function renderDailyWorkout() {
-    const workoutListEl = document.getElementById('daily-workout-list');
-    if (!workoutListEl) return;
-
-    // First, we need to ensure the client's plan is loaded.
-    if (!currentUserData.plan) {
-         const { data, error } = await db.from('workout_plans').select('*').eq('client_id', currentUserData.id).single();
-         if (error && error.code !== 'PGRST116') {
-            console.error("Error fetching workout plan:", error);
-            workoutListEl.innerHTML = `<p class="text-red-500">خطا در بارگذاری برنامه</p>`;
-            return;
-         }
-         currentUserData.plan = data; // Cache the plan
-    }
-
-    const plan = currentUserData.plan;
-    if (!plan || !plan.plan_data || !plan.plan_data.schedule) {
-        workoutListEl.innerHTML = `<p class="text-center text-[var(--text-color-muted)] p-4">هنوز برنامه‌ای برای شما ثبت نشده است.</p>`;
-        return;
-    }
-    
-    const today = new Intl.DateTimeFormat('fa-IR', { weekday: 'long' }).format(new Date());
-    const todaysWorkout = plan.plan_data.schedule[today] || [];
-    
-    if (todaysWorkout.length === 0) {
-        workoutListEl.innerHTML = `<div class="text-center p-4 rounded-lg bg-[var(--success-bg)] text-[var(--success-color)]">امروز روز استراحت است! لذت ببر!</div>`;
-        return;
-    }
-    
-    workoutListEl.innerHTML = todaysWorkout.map((ex, i) => `
-        <div class="card p-3 flex items-center justify-between transition ${ex.done ? 'opacity-50' : ''}">
-            <div>
-                <p class="font-semibold">${ex.name}</p>
-                <p class="text-sm text-[var(--text-color-muted)]">${ex.sets} ست × ${ex.reps} تکرار</p>
-            </div>
-            <input type="checkbox" data-day="${today}" data-index="${i}" class="exercise-checkbox w-6 h-6 rounded bg-gray-700 border-gray-600 text-[var(--accent-color)] focus:ring-[var(--accent-color)]" ${ex.done ? 'checked' : ''}>
-        </div>
-    `).join('');
-}
+        async function renderChallengesView() {
+            const view = document.getElementById('challenges-view');
+            view.innerHTML = `<p class="text-center text-[var(--text-color-muted)]">در حال بارگذاری...</p>`;
+            try {
+                const [challengesRes, achievementsRes] = await Promise.all([
+                    db.from('challenges').select('*'),
+                    db.from('user_achievements').select('challenge_id').eq('user_id', currentUserData.id)
+                ]);
+                if (challengesRes.error || achievementsRes.error) throw new Error('خطا در دریافت چالش‌ها');
+                const allChallenges = challengesRes.data;
+                const completedChallengeIds = new Set(achievementsRes.data.map(a => a.challenge_id));
+                if (allChallenges.length === 0) {
+                    view.innerHTML = `<p class="text-center text-[var(--text-color-muted)]">چالشی تعریف نشده.</p>`;
+                    return;
+                }
+                view.innerHTML = allChallenges.map(challenge => {
+                    const isCompleted = completedChallengeIds.has(challenge.id);
+                    return `<div class="card p-4 rounded-lg flex items-center gap-4 ${isCompleted ? 'opacity-60' : ''}"><div class="p-3 rounded-full ${isCompleted ? 'bg-[var(--success-color)]' : 'bg-[var(--accent-color)]'} text-white">...</div><div class="flex-grow"><h3 class="font-bold">${challenge.title}</h3><p class="text-sm text-[var(--text-color-muted)]">${challenge.description}</p></div>${isCompleted ? `...` : ''}</div>`;
+                }).join('');
+            } catch (error) {
+                view.innerHTML = `<p class="text-red-500 text-center">${error.message}</p>`;
+            }
+        }
         
         // =================================================================
         // EVENT LISTENERS
         // =================================================================
 
         function setupEventListeners() {
-    // --- دستور عیب‌یابی جدید ---
-    console.log("در حال تنظیم شنونده‌ها...");
-    if (dom.navBar) {
-        console.log("✅ عنصر 'navBar' با موفقیت پیدا شد.", dom.navBar);
-    } else {
-        console.error("❌ خطای حیاتی: عنصر 'navBar' (با آیدی bottom-nav-bar) در HTML پیدا نشد!");
-        return; // اجرای تابع را متوقف می‌کنیم چون عنصر اصلی وجود ندارد
-    }
-
-    // بقیه تابع بدون تغییر باقی می‌ماند
-    dom.themeToggleButton.addEventListener('click', toggleTheme);
-    dom.logoutBtn.addEventListener('click', () => db.auth.signOut());
-    dom.authActionBtn.addEventListener('click', handleAuthAction);
-
-    dom.toggleAuthModeBtn.addEventListener('click', () => {
-        isRegisterMode = !isRegisterMode;
-        dom.registerFields.classList.toggle('hidden', !isRegisterMode);
-        dom.authTitle.textContent = isRegisterMode ? 'ایجاد حساب جدید' : 'ورود به حساب کاربری';
-        dom.authActionBtn.textContent = isRegisterMode ? 'ثبت نام' : 'ورود';
-        dom.authPromptText.textContent = isRegisterMode ? 'حساب کاربری دارید؟' : 'حساب کاربری ندارید؟';
-        dom.toggleAuthModeBtn.textContent = isRegisterMode ? 'وارد شوید' : 'ثبت نام کنید';
-    });
-    
-    dom.navBar.addEventListener('click', (e) => {
-        console.log("1. کلیک روی نوار ناوبری شناسایی شد.");
-        const button = e.target.closest('.nav-btn');
-        if (!button) {
-            console.error("خطا: کلیک روی دکمه تشخیص داده نشد.");
-            return;
+            dom.themeToggleButton.addEventListener('click', toggleTheme);
+            dom.logoutBtn.addEventListener('click', () => db.auth.signOut());
+            dom.authActionBtn.addEventListener('click', handleAuthAction);
+            dom.toggleAuthModeBtn.addEventListener('click', () => {
+                isRegisterMode = !isRegisterMode;
+                dom.registerFields.classList.toggle('hidden', !isRegisterMode);
+                dom.authTitle.textContent = isRegisterMode ? 'ایجاد حساب جدید' : 'ورود';
+                dom.authActionBtn.textContent = isRegisterMode ? 'ثبت نام' : 'ورود';
+                dom.authPromptText.textContent = isRegisterMode ? 'حساب دارید؟' : 'حساب ندارید؟';
+                dom.toggleAuthModeBtn.textContent = isRegisterMode ? 'وارد شوید' : 'ثبت نام کنید';
+            });
+            
+            dom.navBar.addEventListener('click', (e) => {
+                const button = e.target.closest('.nav-btn');
+                if (!button || !currentUserData) return;
+                const viewId = button.dataset.view;
+                const title = button.dataset.title;
+                if (viewId === 'trainer-dashboard-view' && currentUserData.role === 'client') return;
+                if (viewId === 'client-dashboard-view' && currentUserData.role === 'trainer') {
+                    renderTrainerDashboard();
+                    return;
+                }
+                switch (viewId) {
+                    case 'client-dashboard-view': renderClientDashboard(); break;
+                    case 'profile-view': renderProfileView(); break;
+                    case 'challenges-view': renderChallengesView(); break;
+                }
+            });
         }
-        if (!currentUserData) {
-            console.error("خطا: اطلاعات کاربر (currentUserData) هنوز بارگذاری نشده است.");
-            return;
-        }
-        console.log("2. دکمه پیدا شد و اطلاعات کاربر موجود است.");
-        const viewId = button.dataset.view;
-        const title = button.dataset.title;
-        console.log(`3. درخواست برای نمایش صفحه: ${viewId} با عنوان: ${title}`);
-        showView(viewId, title);
-        console.log(`4. تابع showView برای '${viewId}' اجرا شد.`);
-        switch (viewId) {
-            case 'client-dashboard-view':
-                console.log("5. رندر کردن داشبورد شاگرد...");
-                renderClientDashboard();
-                break;
-            case 'trainer-dashboard-view':
-                console.log("5. رندر کردن داشبورد مربی...");
-                renderTrainerDashboard();
-                break;
-            case 'profile-view':
-                console.log("5. رندر کردن پروفایل...");
-                renderProfileView();
-                break;
-            case 'challenges-view':
-                console.log("5. رندر کردن چالش‌ها...");
-                renderChallengesView();
-                break;
-            default:
-                console.error("خطای مهم: viewId ناشناخته است:", viewId);
-        }
-        console.log("6. کار پردازش کلیک تمام شد.");
-    });
-}
-         
 
         // =================================================================
-        // INITIALIZATION
+        // APP START
         // =================================================================
         
         function main() {
@@ -517,27 +416,23 @@ async function renderDailyWorkout() {
             setupEventListeners();
             
             db.auth.onAuthStateChange((event, session) => {
-                console.log("Auth state changed. Event:", event);
                 if (session && session.user) {
-                    console.log("User is logged in. Session:", session);
                     loadAppData(session.user);
                 } else {
-                    console.log("User is logged out.");
                     currentUserData = null;
-                    showAuthScreen();
+                    showScreen('auth');
                 }
             });
         }
         
         try {
-    if (!SUPABASE_URL || SUPABASE_URL.startsWith('YOUR_')) throw new Error("Supabase URL/Key not set.");
-    db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    main();
-} catch (e) {
-    console.error("Fatal initialization error:", e);
-    dom.loadingView.classList.remove('hidden');
-    dom.loadingText.textContent = `خطای مهلک: ${e.message}`;
-} // <-- این آکولاد بسته در کد قبلی جا افتاده بود 
+            if (!SUPABASE_URL || SUPABASE_URL.startsWith('YOUR_')) throw new Error("Supabase URL/Key not set.");
+            db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            main();
+        } catch (e) {
+            dom.loadingText.textContent = `خطای مهلک: ${e.message}`;
+        }
+
     </script>
 </body>
 </html>
