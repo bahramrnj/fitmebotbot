@@ -1,323 +1,374 @@
 <!DOCTYPE html>
-<html lang="fa" dir="rtl" data-theme="dark"> <head>
+<html lang="fa" dir="rtl" data-theme="dark">
+<head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FitPlan - برنامه تمرینی حرفه‌ای</title>
+    <title>FitPlan - برنامه ورزشی شما</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        /* --- تعریف متغیرهای رنگی برای تم‌ها --- */
         :root[data-theme="dark"] {
-            --bg-color: #111827;
-            --text-color: #f3f4f6;
-            --text-color-muted: #9ca3af;
-            --card-bg: rgba(31, 41, 55, 0.6);
-            --card-border: rgba(245, 158, 11, 0.2);
-            --accent-color: #f59e0b; /* Amber */
-            --accent-text-color: #1f2937;
-            --input-bg: #1f2937;
+            --bg-color: #0d1117; --text-color: #e6edf3; --text-color-muted: #7d8590;
+            --card-bg: rgba(22, 27, 34, 0.7); --card-border: rgba(255, 255, 255, 0.1);
+            --accent-color: #f59e0b; --accent-text-color: #111827;
+            --input-bg: #161b22; --input-border: #30363d;
+            --success-color: #2ea043; --success-bg: rgba(46, 160, 67, 0.1);
         }
-
         :root[data-theme="light"] {
-            --bg-color: #f3f4f6;
-            --text-color: #1f2937;
-            --text-color-muted: #4b5563;
-            --card-bg: rgba(255, 255, 255, 0.8);
-            --card-border: rgba(0, 0, 0, 0.1);
-            --accent-color: #3b82f6; /* Blue */
-            --accent-text-color: #ffffff;
-            --input-bg: #e5e7eb;
+            --bg-color: #f3f4f6; --text-color: #111827; --text-color-muted: #6b7280;
+            --card-bg: rgba(255, 255, 255, 0.8); --card-border: #d1d5db;
+            --accent-color: #2563eb; --accent-text-color: #ffffff;
+            --input-bg: #ffffff; --input-border: #d1d5db;
+            --success-color: #16a34a; --success-bg: rgba(22, 163, 74, 0.1);
         }
-
-        body {
-            font-family: 'Vazirmatn', sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            transition: background-color 0.3s, color 0.3s;
-        }
-        .card {
-            background-color: var(--card-bg);
-            backdrop-filter: blur(12px);
-            border: 1px solid var(--card-border);
-            transition: background-color 0.3s, border-color 0.3s;
-        }
-        .btn-primary { 
-            background-color: var(--accent-color);
-            color: var(--accent-text-color);
-        }
-        .input-base {
-            background-color: var(--input-bg);
-            color: var(--text-color);
-            border: 1px solid var(--card-border);
-        }
-        /* --- استایل‌های جدید برای منوی پایین --- */
-        .bottom-nav {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background-color: var(--card-bg);
-            backdrop-filter: blur(12px);
-            border-top: 1px solid var(--card-border);
-            z-index: 1000;
-        }
-        .nav-btn {
-            color: var(--text-color-muted);
-        }
-        .nav-btn.active {
-            color: var(--accent-color);
-            transform: scale(1.1);
-        }
-        
-        /* کلاس‌های کمکی */
+        body { font-family: 'Vazirmatn', sans-serif; background-color: var(--bg-color); color: var(--text-color); transition: background-color 0.3s, color 0.3s; padding-bottom: 5rem; }
+        .card { background-color: var(--card-bg); backdrop-filter: blur(12px); border: 1px solid var(--card-border); transition: all 0.3s; }
+        .btn-primary { background-color: var(--accent-color); color: var(--accent-text-color); }
+        .input-base { background-color: var(--input-bg); color: var(--text-color); border: 1px solid var(--input-border); }
+        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background-color: var(--card-bg); backdrop-filter: blur(12px); border-top: 1px solid var(--card-border); z-index: 50; }
+        .nav-btn { color: var(--text-color-muted); }
+        .nav-btn.active { color: var(--accent-color); transform: translateY(-4px); }
         .hidden { display: none; }
         .toast { position: fixed; bottom: -100px; left: 50%; transform: translateX(-50%); padding: 12px 24px; border-radius: 8px; color: white; z-index: 1000; opacity: 0; transition: all 0.4s ease-in-out; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
-        .toast.show { opacity: 1; bottom: 90px; }
-        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        .toast.show { opacity: 1; bottom: 6rem; }
     </style>
 </head>
-<body class="pb-24"> <div id="app-container" class="container mx-auto p-4 max-w-lg min-h-screen flex flex-col">
+<body>
 
-        <header id="app-header" class="text-center mb-6 flex items-center justify-between">
-            <button id="theme-toggle-btn" class="p-2 rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-[var(--bg-color)] focus:ring-[var(--accent-color)]">
-                </button>
-            
-            <div class="flex items-center justify-center gap-3 flex-grow">
-                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-[var(--accent-color)]">
-                    <path d="M14.5 7.5h-5l-2-2h9l-2 2zM5 12h14M7.5 16.5h9l-2-2h-5l-2 2z"></path>
-                    <path d="M3 10v4a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-4"></path>
-                    <path d="M4 12h-2"></path><path d="M22 12h-2"></path>
-                </svg>
-                <h1 class="text-4xl font-bold tracking-tight">FitPlan</h1>
-            </div>
-            <div class="w-10"></div> </header>
+    <div id="app-container" class="container mx-auto p-4 max-w-lg min-h-screen flex flex-col">
 
-        <div id="loading-view" class="text-center py-10">
-             <svg class="animate-spin h-8 w-8 text-[var(--accent-color)] mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-             <p id="loading-text" class="mt-2">در حال بارگذاری...</p>
+        <div id="loading-view" class="flex flex-col items-center justify-center flex-grow">
+            <svg class="animate-spin h-8 w-8 text-[var(--accent-color)]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+            <p id="loading-text" class="mt-2 text-[var(--text-color-muted)]">در حال بارگذاری...</p>
         </div>
 
-        <div id="auth-view" class="hidden">
-            <div class="card p-8 rounded-xl shadow-lg">
+        <div id="auth-view" class="hidden flex-grow flex flex-col justify-center">
+             <div class="text-center mb-8">
+                 <h1 class="text-4xl font-bold">به FitPlan خوش آمدید</h1>
+                 <p class="text-[var(--text-color-muted)] mt-2">برنامه ورزشی خود را حرفه‌ای مدیریت کنید</p>
+             </div>
+             <div class="card p-8 rounded-xl shadow-lg">
                 <h2 id="auth-title" class="text-2xl font-bold mb-6 text-center">ورود به حساب کاربری</h2>
                 <div class="space-y-4">
-                    <input type="email" id="email-input" placeholder="ایمیل" class="w-full p-3 rounded-lg input-base">
-                    <input type="password" id="password-input" placeholder="رمز عبور" class="w-full p-3 rounded-lg input-base">
-                    <button id="auth-action-btn" class="w-full btn-primary font-bold py-3 rounded-lg">ورود</button>
+                    <input type="email" id="email-input" placeholder="ایمیل" autocomplete="email" class="w-full p-3 rounded-lg input-base">
+                    <input type="password" id="password-input" placeholder="رمز عبور (حداقل ۶ کاراکتر)" autocomplete="current-password" class="w-full p-3 rounded-lg input-base">
+                    <div id="register-fields" class="hidden space-y-4">
+                        <input type="text" id="name-input" placeholder="نام شما" class="w-full p-3 rounded-lg input-base">
+                        <select id="role-select" class="w-full p-3 rounded-lg input-base">
+                            <option value="client">شاگرد هستم</option>
+                            <option value="trainer">مربی هستم</option>
+                        </select>
+                    </div>
+                    <button id="auth-action-btn" class="w-full btn-primary font-bold py-3 rounded-lg transition-transform hover:scale-105">ورود</button>
                 </div>
-                <p class="text-center mt-4 text-sm"><span id="auth-prompt-text">حساب کاربری ندارید؟</span> <button id="toggle-auth-mode-btn" class="text-[var(--accent-color)] hover:underline">ثبت نام کنید</button></p>
+                <p class="text-center mt-4 text-sm"><span id="auth-prompt-text">حساب کاربری ندارید؟</span> <button id="toggle-auth-mode-btn" class="text-[var(--accent-color)] hover:underline font-bold">ثبت نام کنید</button></p>
             </div>
         </div>
-        
-        <div id="main-content" class="hidden flex-grow">
-            <div id="client-dashboard-view" class="hidden space-y-6">
-                 </div>
+
+        <div id="main-content" class="hidden flex-grow w-full">
+            <header id="app-header" class="flex items-center justify-between mb-6">
+                <button id="logout-btn" class="p-2" title="خروج">
+                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                </button>
+                <h2 id="view-title" class="text-xl font-bold">داشبورد</h2>
+                <button id="theme-toggle-btn" class="p-2" title="تغییر تم"></button>
+            </header>
             
-            <div id="challenges-view" class="hidden space-y-6">
-                <h2 class="text-2xl font-bold">چالش‌ها و دستاوردها</h2>
-                <div id="challenges-list" class="space-y-4">
-                    </div>
-            </div>
-            
-            <div id="rewards-view" class="hidden space-y-6">
-                <h2 class="text-2xl font-bold">باشگاه مشتریان (جوایز)</h2>
-                <div class="card p-6 rounded-xl text-center">
-                    <p class="text-lg">🎉</p>
-                    <p class="mt-2 text-[var(--text-color-muted)]">این بخش به زودی با جوایز و امکانات هیجان‌انگیز بر اساس میزان فعالیت شما فعال خواهد شد. به تلاش ادامه دهید!</p>
-                </div>
-            </div>
+            <div id="client-dashboard-view" class="hidden space-y-6"></div>
+            <div id="trainer-dashboard-view" class="hidden space-y-6"></div>
+            <div id="challenges-view" class="hidden space-y-6"></div>
+            <div id="rewards-view" class="hidden space-y-6"></div>
+            <div id="profile-view" class="hidden space-y-6"></div>
         </div>
 
     </div>
 
     <nav id="bottom-nav-bar" class="bottom-nav max-w-lg mx-auto h-20 flex justify-around items-center shadow-lg hidden">
-        <button data-view="rewards-view" class="nav-btn flex flex-col items-center gap-1 transition-all">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
-            <span class="text-xs font-medium">جوایز</span>
+        <button data-view="profile-view" data-title="پروفایل" class="nav-btn flex flex-col items-center gap-1 transition-all">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            <span class="text-xs font-medium">پروفایل</span>
         </button>
-        <button data-view="client-dashboard-view" class="nav-btn active flex flex-col items-center gap-1 transition-all">
+        <button data-view="client-dashboard-view" data-title="داشبورد" class="nav-btn active flex flex-col items-center gap-1 transition-all">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
             <span class="text-xs font-medium">خانه</span>
         </button>
-        <button data-view="challenges-view" class="nav-btn flex flex-col items-center gap-1 transition-all">
+        <button data-view="challenges-view" data-title="چالش‌ها" class="nav-btn flex flex-col items-center gap-1 transition-all">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
             <span class="text-xs font-medium">چالش‌ها</span>
         </button>
     </nav>
-    
+
     <div id="toast-notification" class="toast"></div>
 
     <script type="module">
-    const { createClient } = supabase;
-    const SUPABASE_URL = 'https://lsitdkehiqcexrugjmjj.supabase.co'; 
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxzaXRka2VoaXFjZXhydWdqbWpqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkzNzczNzksImV4cCI6MjA2NDk1MzM3OX0.pxY5gE85elOAYQYtt15nxej_ws4AiHv6L3P1XMxR6CA';
-    let db;
+        // =================================================================
+        // SETUP & INITIALIZATION
+        // =================================================================
+        const { createClient } = supabase;
+        const SUPABASE_URL = 'https://lsitdkehiqcexrugjmjj.supabase.co'; 
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxzaXRka2VoaXFjZXhydWdqbWpqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkzNzczNzksImV4cCI6MjA2NDk1MzM3OX0.pxY5gE85elOAYQYtt15nxej_ws4AiHv6L3P1XMxR6CA';
+        let db;
 
-    // --- DOM Elements ---
-    const loadingView = document.getElementById('loading-view');
-    const authView = document.getElementById('auth-view');
-    const mainContent = document.getElementById('main-content');
-    const navBar = document.getElementById('bottom-nav-bar');
-    const themeToggleButton = document.getElementById('theme-toggle-btn');
+        const dom = {
+            loadingView: document.getElementById('loading-view'),
+            authView: document.getElementById('auth-view'),
+            mainContent: document.getElementById('main-content'),
+            navBar: document.getElementById('bottom-nav-bar'),
+            themeToggleButton: document.getElementById('theme-toggle-btn'),
+            viewTitle: document.getElementById('view-title'),
+            // Auth form elements
+            emailInput: document.getElementById('email-input'),
+            passwordInput: document.getElementById('password-input'),
+            nameInput: document.getElementById('name-input'),
+            roleSelect: document.getElementById('role-select'),
+            registerFields: document.getElementById('register-fields'),
+            authActionBtn: document.getElementById('auth-action-btn'),
+            toggleAuthModeBtn: document.getElementById('toggle-auth-mode-btn'),
+            authTitle: document.getElementById('auth-title'),
+            authPromptText: document.getElementById('auth-prompt-text'),
+            logoutBtn: document.getElementById('logout-btn')
+        };
 
-    // --- Global State ---
-    let currentUserData = null;
-    let isRegisterMode = false;
+        let currentUserData = null;
+        let isRegisterMode = false;
+        
+        const sunIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>`;
+        const moonIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>`;
 
-    // --- Theme Logic ---
-    const sunIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>`;
-    const moonIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>`;
+        // =================================================================
+        // CORE APP LOGIC
+        // =================================================================
 
-    function applyTheme(theme) {
-        document.documentElement.setAttribute('data-theme', theme);
-        themeToggleButton.innerHTML = theme === 'dark' ? sunIcon : moonIcon;
-        localStorage.setItem('theme', theme);
-    }
-
-    function toggleTheme() {
-        const currentTheme = document.documentElement.getAttribute('data-theme');
-        const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-        applyTheme(newTheme);
-    }
-
-    function loadTheme() {
-        const savedTheme = localStorage.getItem('theme');
-        const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        applyTheme(savedTheme || (systemPrefersDark ? 'dark' : 'light'));
-    }
-
-    // --- Navigation Logic ---
-    function showView(viewId) {
-        mainContent.querySelectorAll(':scope > div').forEach(v => v.classList.add('hidden'));
-        const view = document.getElementById(viewId);
-        if (view) view.classList.remove('hidden');
-
-        navBar.querySelectorAll('.nav-btn').forEach(btn => {
-            btn.classList.toggle('active', btn.dataset.view === viewId);
-        });
-    }
-    
-    // --- Challenges & Rewards Logic ---
-    async function renderChallenges() {
-        // This function is now correctly defined and will be called when needed.
-        // ... (The logic from the previous correct response is assumed to be here)
-    }
-
-    // --- Authentication & User Flow ---
-    async function loadUserDashboard(user) {
-        const { data, error } = await db.from('profiles').select('*').eq('id', user.id).single();
-        if (error) {
-            console.error("Error fetching profile:", error);
-            showToast(`خطا در بارگذاری پروفایل: ${error.message}`, 'bg-red-500');
-            await db.auth.signOut();
-            return;
+        function showToast(message, type = 'info') {
+            const toast = document.getElementById('toast-notification');
+            toast.textContent = message;
+            constbgColor = type === 'success' ? 'bg-green-600' : type === 'error' ? 'bg-red-600' : 'bg-gray-800';
+            toast.className = `toast show ${bgColor}`;
+            setTimeout(() => { toast.className = 'toast'; }, 3500);
         }
-        
-        currentUserData = data;
-        
-        loadingView.classList.add('hidden');
-        authView.classList.add('hidden');
-        mainContent.classList.remove('hidden');
-        navBar.classList.remove('hidden');
-        
-        if (currentUserData.role === 'trainer') {
-            // Logic for trainer dashboard (to be added)
-            showView('client-dashboard-view'); // Placeholder
-        } else {
-            // Client dashboard logic
-            renderClientDashboard();
-            showView('client-dashboard-view');
+
+        function applyTheme(theme) {
+            document.documentElement.setAttribute('data-theme', theme);
+            dom.themeToggleButton.innerHTML = theme === 'dark' ? sunIcon : moonIcon;
+            localStorage.setItem('theme', theme);
         }
-    }
 
-    function renderClientDashboard() {
-        const clientDashboard = document.getElementById('client-dashboard-view');
-        // This function will now be responsible for creating the dashboard content
-        // For brevity, I'll put a simplified version here. 
-        // You should integrate your full dashboard HTML creation here.
-        clientDashboard.innerHTML = `
-            <div class="card p-4 rounded-xl flex justify-between items-center">
-                <div>
-                    <h2 class="text-xl font-bold">خوش آمدید، ${currentUserData.name}!</h2>
-                </div>
-                <button id="logout-btn" class="p-2" title="خروج">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
-                </button>
-            </div>
-            <div class="card p-6 rounded-xl text-center">
-                <p>آمار و تمرینات شما در اینجا نمایش داده خواهد شد.</p>
-            </div>
-        `;
-        // Re-attach event listeners for dynamically created content
-        document.getElementById('logout-btn').addEventListener('click', () => db.auth.signOut());
-    }
-    
-    function showAuthView() {
-        loadingView.classList.add('hidden');
-        mainContent.classList.add('hidden');
-        navBar.classList.add('hidden');
-        authView.classList.remove('hidden');
-        currentUserData = null;
-    }
-    
-    // You need to re-add your handleAuthAction function here
-    async function handleAuthAction(event) {
-        // ... (Paste your original handleAuthAction function here)
-    }
+        function toggleTheme() {
+            const newTheme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+            applyTheme(newTheme);
+        }
 
-    // --- Main Application Setup ---
-    function setupEventListeners() {
-        themeToggleButton.addEventListener('click', toggleTheme);
-        navBar.addEventListener('click', (e) => {
-            const button = e.target.closest('.nav-btn');
-            if (button) {
-                showView(button.dataset.view);
-                if (button.dataset.view === 'challenges-view' && currentUserData) {
-                    // renderChallenges(); // You would call your render function here
+        function loadTheme() {
+            const savedTheme = localStorage.getItem('theme');
+            const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            applyTheme(savedTheme || (systemPrefersDark ? 'dark' : 'light'));
+        }
+
+        function showView(viewId, title) {
+            dom.mainContent.querySelectorAll(':scope > div').forEach(v => v.classList.add('hidden'));
+            const view = document.getElementById(viewId);
+            if (view) view.classList.remove('hidden');
+            dom.viewTitle.textContent = title;
+
+            dom.navBar.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.view === viewId);
+            });
+        }
+
+        async function handleAuthAction() {
+            const email = dom.emailInput.value.trim();
+            const password = dom.passwordInput.value.trim();
+            if (!email || !password) return showToast('ایمیل و رمز عبور الزامی است.', 'error');
+            dom.authActionBtn.disabled = true;
+            dom.authActionBtn.textContent = 'در حال بررسی...';
+
+            if (isRegisterMode) {
+                const name = dom.nameInput.value.trim();
+                const role = dom.roleSelect.value;
+                if (!name) {
+                    showToast('نام الزامی است.', 'error');
+                    dom.authActionBtn.disabled = false;
+                    dom.authActionBtn.textContent = 'ثبت نام';
+                    return;
                 }
-            }
-        });
-        
-        // Add listeners for auth form
-        document.getElementById('auth-action-btn').addEventListener('click', () => {
-             // You need to implement the login/signup logic call here
-             console.log("Auth button clicked");
-        });
-        document.getElementById('toggle-auth-mode-btn').addEventListener('click', () => {
-             // Your logic to toggle between login and register
-             console.log("Toggle auth mode");
-        });
-    }
-
-    function main() {
-        loadTheme();
-        setupEventListeners();
-
-        db.auth.onAuthStateChange(async (event, session) => {
-            // This is the FIX: The loading screen is now hidden in both cases.
-            loadingView.classList.add('hidden');
-
-            if (session && session.user) {
-                await loadUserDashboard(session.user);
+                const { data, error } = await db.auth.signUp({
+                    email, password, options: { data: { name, role } }
+                });
+                if (error) {
+                    showToast(error.message, 'error');
+                } else {
+                    showToast('ثبت نام موفق بود! لطفا ایمیل خود را برای تایید حساب کاربری چک کنید.', 'success');
+                    dom.toggleAuthModeBtn.click();
+                }
             } else {
-                showAuthView();
+                const { error } = await db.auth.signInWithPassword({ email, password });
+                if (error) showToast(error.message, 'error');
             }
-        });
-    }
-
-    // --- Initialization ---
-    try {
-        if (!SUPABASE_URL || !SUPABASE_ANON_KEY || SUPABASE_URL.startsWith('YOUR_')) {
-            throw new Error("اطلاعات اتصال به Supabase (URL و KEY) هنوز وارد نشده است.");
+            dom.authActionBtn.disabled = false;
+            dom.authActionBtn.textContent = isRegisterMode ? 'ثبت نام' : 'ورود';
         }
-        db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        main();
-    } catch (e) {
-        loadingView.classList.remove('hidden');
-        document.getElementById('loading-text').textContent = `خطا در اتصال: ${e.message}`;
-        console.error("Initialization failed:", e);
-    }
-</script>
+
+        async function loadAppData(user) {
+            const { data, error } = await db.from('profiles').select('*').eq('id', user.id).single();
+            if (error) {
+                showToast('خطا در بارگذاری پروفایل.', 'error');
+                await db.auth.signOut();
+                return;
+            }
+            currentUserData = data;
+            
+            dom.loadingView.classList.add('hidden');
+            dom.authView.classList.add('hidden');
+            dom.mainContent.classList.remove('hidden');
+            dom.navBar.classList.remove('hidden');
+
+            // Set default view based on role
+            if (currentUserData.role === 'trainer') {
+                renderTrainerDashboard();
+            } else {
+                renderClientDashboard();
+            }
+        }
+        
+        // =================================================================
+        // RENDER FUNCTIONS (These create the content for each view)
+        // =================================================================
+
+        function renderClientDashboard() {
+            const view = document.getElementById('client-dashboard-view');
+            view.innerHTML = `
+                <div class="card p-4 text-center">
+                    <h3 class="text-lg">سلام، <span class="font-bold">${currentUserData.name}</span>!</h3>
+                    <p class="text-sm text-[var(--text-color-muted)]">به داشبورد خود خوش آمدید.</p>
+                </div>
+                `;
+            showView('client-dashboard-view', 'داشبورد');
+        }
+
+        function renderTrainerDashboard() {
+            const view = document.getElementById('trainer-dashboard-view');
+            view.innerHTML = `
+                <div class="card p-4">
+                    <h3 class="text-lg font-bold">داشبورد مربی</h3>
+                    <p class="text-sm text-[var(--text-color-muted)]">کد اتصال شما: <strong class="select-all">${currentUserData.trainer_code}</strong></p>
+                </div>
+                `;
+            // For trainers, the "Home" button on nav bar should lead here
+            dom.navBar.querySelector('[data-view="client-dashboard-view"]').dataset.view = 'trainer-dashboard-view';
+            showView('trainer-dashboard-view', 'داشبورد مربی');
+        }
+
+        function renderProfileView() {
+            const view = document.getElementById('profile-view');
+            // Logic to render user's profile information and edit form
+            view.innerHTML = `<div class="card p-6"><h3 class="font-bold text-lg">پروفایل من</h3><p class="mt-4">ایمیل: ${currentUserData.email}</p><p>نقش: ${currentUserData.role === 'trainer' ? 'مربی' : 'شاگرد'}</p></div>`;
+        }
+
+        async function renderChallengesView() {
+            const view = document.getElementById('challenges-view');
+            view.innerHTML = `<p class="text-[var(--text-color-muted)] text-center">در حال بارگذاری چالش‌ها...</p>`;
+            try {
+                const [challengesRes, achievementsRes] = await Promise.all([
+                    db.from('challenges').select('*'),
+                    db.from('user_achievements').select('challenge_id').eq('user_id', currentUserData.id)
+                ]);
+
+                if (challengesRes.error || achievementsRes.error) throw new Error('خطا در دریافت اطلاعات چالش‌ها');
+                
+                const allChallenges = challengesRes.data;
+                const completedChallengeIds = new Set(achievementsRes.data.map(a => a.challenge_id));
+
+                if (allChallenges.length === 0) {
+                    view.innerHTML = `<p class="text-[var(--text-color-muted)] text-center">چالشی برای نمایش وجود ندارد.</p>`;
+                    return;
+                }
+
+                view.innerHTML = allChallenges.map(challenge => {
+                    const isCompleted = completedChallengeIds.has(challenge.id);
+                    return `
+                        <div class="card p-4 rounded-lg flex items-center gap-4 ${isCompleted ? 'opacity-60' : ''}">
+                            <div class="p-3 rounded-full ${isCompleted ? 'bg-[var(--success-color)]' : 'bg-[var(--accent-color)]'} text-white">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                            </div>
+                            <div class="flex-grow">
+                                <h3 class="font-bold text-lg">${challenge.title}</h3>
+                                <p class="text-sm text-[var(--text-color-muted)]">${challenge.description}</p>
+                            </div>
+                            ${isCompleted ? `<div class="p-1 rounded-full bg-[var(--success-bg)] text-[var(--success-color)]"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></div>` : ''}
+                        </div>
+                    `;
+                }).join('');
+
+            } catch (error) {
+                view.innerHTML = `<p class="text-red-500 text-center">${error.message}</p>`;
+            }
+        }
+        
+        // =================================================================
+        // EVENT LISTENERS
+        // =================================================================
+
+        function setupEventListeners() {
+            dom.themeToggleButton.addEventListener('click', toggleTheme);
+            dom.logoutBtn.addEventListener('click', () => db.auth.signOut());
+            dom.authActionBtn.addEventListener('click', handleAuthAction);
+
+            dom.toggleAuthModeBtn.addEventListener('click', () => {
+                isRegisterMode = !isRegisterMode;
+                dom.registerFields.classList.toggle('hidden', !isRegisterMode);
+                dom.authTitle.textContent = isRegisterMode ? 'ایجاد حساب جدید' : 'ورود به حساب کاربری';
+                dom.authActionBtn.textContent = isRegisterMode ? 'ثبت نام' : 'ورود';
+                dom.authPromptText.textContent = isRegisterMode ? 'حساب کاربری دارید؟' : 'حساب کاربری ندارید؟';
+                dom.toggleAuthModeBtn.textContent = isRegisterMode ? 'وارد شوید' : 'ثبت نام کنید';
+            });
+            
+            dom.navBar.addEventListener('click', (e) => {
+                const button = e.target.closest('.nav-btn');
+                if (!button || !currentUserData) return;
+                
+                const viewId = button.dataset.view;
+                const title = button.dataset.title;
+                showView(viewId, title);
+
+                // Call render function for the specific view
+                if (viewId === 'client-dashboard-view' && currentUserData.role === 'client') renderClientDashboard();
+                if (viewId === 'trainer-dashboard-view' && currentUserData.role === 'trainer') renderTrainerDashboard();
+                if (viewId === 'profile-view') renderProfileView();
+                if (viewId === 'challenges-view') renderChallengesView();
+            });
+        }
+
+        // =================================================================
+        // INITIALIZATION
+        // =================================================================
+        
+        function main() {
+            loadTheme();
+            setupEventListeners();
+            
+            db.auth.onAuthStateChange((event, session) => {
+                if (session && session.user) {
+                    loadAppData(session.user);
+                } else {
+                    currentUserData = null;
+                    dom.loadingView.classList.add('hidden');
+                    dom.mainContent.classList.add('hidden');
+                    dom.navBar.classList.add('hidden');
+                    dom.authView.classList.remove('hidden');
+                }
+            });
+        }
+        
+        try {
+            if (!SUPABASE_URL || SUPABASE_URL.startsWith('YOUR_')) throw new Error("Supabase URL/Key not set.");
+            db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            main();
+        } catch (e) {
+            dom.loadingView.classList.remove('hidden');
+            dom.loadingText.textContent = `خطای مهلک: ${e.message}`;
+        }
+
+    </script>
 </body>
 </html>
