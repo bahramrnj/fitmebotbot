@@ -305,17 +305,20 @@
         }
 
         function renderTrainerDashboard() {
-            const view = document.getElementById('trainer-dashboard-view');
-            view.innerHTML = `
-                <div class="card p-4">
-                    <h3 class="text-lg font-bold">داشبورد مربی</h3>
-                    <p class="text-sm text-[var(--text-color-muted)]">کد اتصال شما: <strong class="select-all">${currentUserData.trainer_code}</strong></p>
-                </div>
-            `;
-            dom.navBar.querySelector('[data-view="client-dashboard-view"]').dataset.view = 'trainer-dashboard-view';
-            showView('trainer-dashboard-view', 'داشبورد مربی');
-        }
-
+    const view = document.getElementById('trainer-dashboard-view');
+    view.innerHTML = `
+        <div class="card p-4">
+            <h3 class="text-lg font-bold">داشبورد مربی</h3>
+            <p class="text-sm text-[var(--text-color-muted)]">کد اتصال شما: <strong class="select-all">${currentUserData.trainer_code}</strong></p>
+        </div>
+        `;
+    // For trainers, the "Home" button on nav bar should lead here
+    const homeButton = dom.navBar.querySelector('[data-view="client-dashboard-view"]');
+    if (homeButton) {
+        homeButton.dataset.view = 'trainer-dashboard-view';
+    }
+    showView('trainer-dashboard-view', 'داشبورد مربی');
+}
         function renderProfileView() {
             const view = document.getElementById('profile-view');
             view.innerHTML = `<div class="card p-6"><h3 class="font-bold text-lg">پروفایل من</h3><p class="mt-4">ایمیل: ${currentUserData.email}</p><p>نقش: ${currentUserData.role === 'trainer' ? 'مربی' : 'شاگرد'}</p></div>`;
