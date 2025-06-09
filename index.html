@@ -273,10 +273,9 @@
                         profileUpdates.linked_trainer_id = trainer.id;
                     }
                 }
-                // Fetch the full profile data again after update to keep it consistent
-                const { data, error } = await db.from('profiles').update(profileUpdates).eq('id', currentUserData.id).select('*, plan:workout_plans(plan_data)').single();
+                const { data, error } = await db.from('profiles').update(profileUpdates).eq('id', currentUserData.id).select().single();
                 if (error) throw error;
-                currentUserData = data; // Update local data with the new info
+                currentUserData = { ...currentUserData, ...data };
                 showToast('پروفایل با موفقیت به‌روز شد!', 'success');
             } catch (error) {
                 showToast(`خطا: ${error.message}`, 'error');
@@ -470,6 +469,7 @@
                 if (allDone) await updateSessionAndStreak();
             } catch (error) {
                 showToast(`خطا در ذخیره وضعیت تمرین: ${error.message}`, 'error');
+                // Revert UI on error
                 const exercise = currentUserData.plan[0].plan_data.schedule[day][parseInt(index)];
                 exercise.done = !isChecked;
                 checkbox.checked = !isChecked;
