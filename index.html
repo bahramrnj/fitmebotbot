@@ -288,6 +288,58 @@
                 renderClientDashboard();
             }
         }
+          // =================================================================
+        // Profile
+        // =================================================================
+       async function saveProfile() {
+    console.log("Saving profile...");
+    const saveButton = document.getElementById('save-profile-btn');
+    saveButton.disabled = true;
+    saveButton.textContent = 'در حال ذخیره...';
+
+    const profileUpdates = {
+        name: document.getElementById('profile-name').value.trim(),
+        profile_data: {
+            height: document.getElementById('profile-height').value,
+            weight: document.getElementById('profile-weight').value,
+            age: document.getElementById('profile-age').value,
+        }
+    };
+
+    // If user is a client and entered a trainer code, try to link them
+    const trainerCodeInput = document.getElementById('trainer-code');
+    if (trainerCodeInput && trainerCodeInput.value.trim()) {
+        const trainerCode = trainerCodeInput.value.trim();
+        const { data: trainer, error: trainerError } = await db.from('profiles')
+            .select('id')
+            .eq('trainer_code', trainerCode)
+            .single();
+        
+        if (trainerError || !trainer) {
+            showToast('کد مربی یافت نشد یا نامعتبر است.', 'error');
+            saveButton.disabled = false;
+            saveButton.textContent = 'ذخیره تغییرات';
+            return;
+        }
+        profileUpdates.linked_trainer_id = trainer.id;
+    }
+
+    const { data, error } = await db.from('profiles')
+        .update(profileUpdates)
+        .eq('id', currentUserData.id)
+        .select()
+        .single();
+    
+    if (error) {
+        showToast(`خطا در ذخیره پروفایل: ${error.message}`, 'error');
+    } else {
+        currentUserData = data; // Update local user data with the new info
+        showToast('پروفایل با موفقیت به‌روز شد!', 'success');
+    }
+
+    saveButton.disabled = false;
+    saveButton.textContent = 'ذخیره تغییرات';
+}
         
         // =================================================================
         // RENDER FUNCTIONS
