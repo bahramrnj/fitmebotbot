@@ -345,44 +345,50 @@
         // RENDER FUNCTIONS
         // =================================================================
 
-        function renderClientDashboard() {
-    const view = document.getElementById('client-dashboard-view');
-    // The original plan data and streak info might need to be fetched again
-    // or be available on currentUserData if we expand it.
-    // For now, we'll use placeholder data. We need to fetch the real plan data.
-    
-    // NOTE: This is a simplified render. We need to fetch the workout plan first.
-    // Let's create a more complete function.
-    
-    // We will assume a function fetchClientData() gets plan and streak info
-    // and attaches it to currentUserData. For now, let's use placeholders.
-    const streak = currentUserData.streaks?.daily || 0;
-    const plan = currentUserData.plan?.plan_data; // Assuming plan is loaded
-    const sessionsLeft = plan ? (plan.totalSessions || 0) - (plan.attendedSessions || 0) : '-';
-
-    // Get today's Persian day name
-    const todayPersian = new Intl.DateTimeFormat('fa-IR', { weekday: 'long' }).format(new Date());
+     function renderProfileView() {
+    const view = document.getElementById('profile-view');
+    const profile = currentUserData.profile_data || {};
+    const isClient = currentUserData.role === 'client';
 
     view.innerHTML = `
-        <div class="grid grid-cols-2 gap-4">
-            <div class="card p-4 rounded-xl text-center">
-                <p class="text-4xl font-bold text-[var(--accent-color)]">${streak}</p>
-                <p class="text-sm text-[var(--text-color-muted)] mt-1">🔥 زنجیره روزانه</p>
+        <div class="card p-6 space-y-4">
+            <h3 class="font-bold text-lg border-b border-[var(--card-border)] pb-3">پروفایل من</h3>
+            
+            <div>
+                <label for="profile-name" class="text-sm text-[var(--text-color-muted)]">نام</label>
+                <input type="text" id="profile-name" value="${currentUserData.name || ''}" class="w-full mt-1 p-2 rounded-lg input-base">
             </div>
-             <div class="card p-4 rounded-xl text-center">
-                <p class="text-4xl font-bold text-[var(--accent-color)]">${sessionsLeft >= 0 ? sessionsLeft : '-'}</p>
-                <p class="text-sm text-[var(--text-color-muted)] mt-1">📅 جلسات باقی‌مانده</p>
+
+            <div class="grid grid-cols-3 gap-4">
+                <div>
+                    <label for="profile-height" class="text-sm text-[var(--text-color-muted)]">قد (cm)</label>
+                    <input type="number" id="profile-height" value="${profile.height || ''}" class="w-full mt-1 p-2 rounded-lg input-base">
+                </div>
+                <div>
+                    <label for="profile-weight" class="text-sm text-[var(--text-color-muted)]">وزن (kg)</label>
+                    <input type="number" id="profile-weight" value="${profile.weight || ''}" class="w-full mt-1 p-2 rounded-lg input-base">
+                </div>
+                <div>
+                    <label for="profile-age" class="text-sm text-[var(--text-color-muted)]">سن</label>
+                    <input type="number" id="profile-age" value="${profile.age || ''}" class="w-full mt-1 p-2 rounded-lg input-base">
+                </div>
             </div>
-        </div>
-        
-        <div class="card p-6 rounded-xl">
-             <h3 class="text-xl font-bold mb-4">تمرینات امروز (${todayPersian})</h3>
-             <div id="daily-workout-list" class="space-y-3">
-                <p class="text-center text-[var(--text-color-muted)] p-4">در حال بارگذاری برنامه تمرینی...</p>
-             </div>
+
+            ${isClient ? `
+            <div>
+                <hr class="border-[var(--input-border)] my-2">
+                <label for="trainer-code" class="text-sm text-[var(--text-color-muted)]">کد اتصال مربی</label>
+                <input type="text" id="trainer-code" placeholder="کدی که از مربی گرفته‌اید" class="w-full mt-1 p-2 rounded-lg input-base">
+            </div>
+            ` : ''}
+            
+            <button id="save-profile-btn" class="w-full btn-primary font-bold py-3 rounded-lg mt-4 transition-transform hover:scale-105">ذخیره تغییرات</button>
         </div>
     `;
-    
+
+    // Add event listener for the new save button
+    document.getElementById('save-profile-btn').addEventListener('click', saveProfile);
+}
     // Now, let's fetch and render the actual workout
     renderDailyWorkout();
 
