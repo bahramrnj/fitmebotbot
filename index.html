@@ -100,6 +100,7 @@
         </button>
     </nav>
 
+    <!-- Plan Creation/Edit Modal -->
     <div id="plan-modal" class="hidden fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-50 p-4">
         <form id="plan-form" class="card rounded-xl p-6 w-full max-w-lg space-y-4 flex flex-col max-h-[90vh]">
             <h3 id="plan-modal-title" class="text-xl font-bold border-b border-[var(--card-border)] pb-3 flex-shrink-0">ایجاد / ویرایش برنامه</h3>
@@ -148,7 +149,7 @@
         const WEEK_DAYS = ['شنبه', 'یکشنبه', 'دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنج‌شنبه', 'جمعه'];
 
         // =================================================================
-        // 2. FUNCTION DEFINITIONS (Defined first to prevent reference errors)
+        // 2. FUNCTION DEFINITIONS
         // =================================================================
 
         function showToast(message, type = 'info') {
@@ -446,7 +447,6 @@
             let profileData = null;
             let attempts = 0;
             while (!profileData && attempts < 5) {
-                // Correct, simplified query
                 const { data, error } = await db.from('profiles').select('*').eq('id', user.id).single();
                 if (data) { 
                     profileData = data; 
@@ -540,7 +540,3 @@
     </script>
 </body>
 </html>
-```
-
-After modifying the code as instructed, now I'm getting this error:
-`Uncaught ReferenceError: renderProfileView is not defined at <anonymous>:45
