@@ -321,48 +321,49 @@
 }
         function renderProfileView() {
             const view = document.getElementById('profile-view');
-            view.innerHTML = `<div class="card p-6"><h3 class="font-bold text-lg">پروفایل من</h3><p class="mt-4">ایمیل: ${currentUserData.email}</p><p>نقش: ${currentUserData.role === 'trainer' ? 'مربی' : 'شاگرد'}</p></div>`;
-        }
+    const profile = currentUserData.profile_data || {}; // Get profile data, or an empty object if it doesn't exist
+    const isClient = currentUserData.role === 'client';
 
-        async function renderChallengesView() {
-            const view = document.getElementById('challenges-view');
-            view.innerHTML = `<p class="text-[var(--text-color-muted)] text-center">در حال بارگذاری چالش‌ها...</p>`;
-            try {
-                const [challengesRes, achievementsRes] = await Promise.all([
-                    db.from('challenges').select('*'),
-                    db.from('user_achievements').select('challenge_id').eq('user_id', currentUserData.id)
-                ]);
+    view.innerHTML = `
+        <div class="card p-6 space-y-4">
+            <h3 class="font-bold text-lg border-b border-[var(--card-border)] pb-3">پروفایل من</h3>
+            
+            <div>
+                <label for="profile-name" class="text-sm text-[var(--text-color-muted)]">نام</label>
+                <input type="text" id="profile-name" value="${currentUserData.name || ''}" class="w-full mt-1 p-2 rounded-lg input-base">
+            </div>
 
-                if (challengesRes.error || achievementsRes.error) throw new Error('خطا در دریافت اطلاعات چالش‌ها');
-                
-                const allChallenges = challengesRes.data;
-                const completedChallengeIds = new Set(achievementsRes.data.map(a => a.challenge_id));
+            <div class="grid grid-cols-3 gap-4">
+                <div>
+                    <label for="profile-height" class="text-sm text-[var(--text-color-muted)]">قد (cm)</label>
+                    <input type="number" id="profile-height" value="${profile.height || ''}" class="w-full mt-1 p-2 rounded-lg input-base">
+                </div>
+                <div>
+                    <label for="profile-weight" class="text-sm text-[var(--text-color-muted)]">وزن (kg)</label>
+                    <input type="number" id="profile-weight" value="${profile.weight || ''}" class="w-full mt-1 p-2 rounded-lg input-base">
+                </div>
+                <div>
+                    <label for="profile-age" class="text-sm text-[var(--text-color-muted)]">سن</label>
+                    <input type="number" id="profile-age" value="${profile.age || ''}" class="w-full mt-1 p-2 rounded-lg input-base">
+                </div>
+            </div>
 
-                if (allChallenges.length === 0) {
-                    view.innerHTML = `<p class="text-[var(--text-color-muted)] text-center">چالشی برای نمایش وجود ندارد.</p>`;
-                    return;
-                }
+            ${isClient ? `
+            <div>
+                <hr class="border-[var(--input-border)] my-2">
+                <label for="trainer-code" class="text-sm text-[var(--text-color-muted)]">کد اتصال مربی</label>
+                <input type="text" id="trainer-code" placeholder="کدی که از مربی گرفته‌اید" class="w-full mt-1 p-2 rounded-lg input-base">
+                <p class="text-xs text-[var(--text-color-muted)] mt-1">اگر مربی دارید، با وارد کردن کد او در اینجا به او متصل می‌شوید.</p>
+            </div>
+            ` : ''}
+            
+            <button id="save-profile-btn" class="w-full btn-primary font-bold py-3 rounded-lg mt-4 transition-transform hover:scale-105">ذخیره تغییرات</button>
+        </div>
+    `;
 
-                view.innerHTML = allChallenges.map(challenge => {
-                    const isCompleted = completedChallengeIds.has(challenge.id);
-                    return `
-                        <div class="card p-4 rounded-lg flex items-center gap-4 ${isCompleted ? 'opacity-60' : ''}">
-                            <div class="p-3 rounded-full ${isCompleted ? 'bg-[var(--success-color)]' : 'bg-[var(--accent-color)]'} text-white">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"></path><circle cx="12" cy="10" r="3"></circle></svg>
-                            </div>
-                            <div class="flex-grow">
-                                <h3 class="font-bold text-lg">${challenge.title}</h3>
-                                <p class="text-sm text-[var(--text-color-muted)]">${challenge.description}</p>
-                            </div>
-                            ${isCompleted ? `<div class="p-1 rounded-full bg-[var(--success-bg)] text-[var(--success-color)]"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></div>` : ''}
-                        </div>
-                    `;
-                }).join('');
-
-            } catch (error) {
-                view.innerHTML = `<p class="text-red-500 text-center">${error.message}</p>`;
-            }
-        }
+    // Add event listener for the new save button
+    document.getElementById('save-profile-btn').addEventListener('click', saveProfile);
+}
         
         // =================================================================
         // EVENT LISTENERS
