@@ -332,14 +332,14 @@
             showView('challenges-view', 'چالش‌ها');
             try {
                 const [challengesRes, achievementsRes] = await Promise.all([
-                    db.from('challenges').select('*'),
+                    db.from('challenges').select('*').eq('target_role', currentUserData.role),
                     db.from('user_achievements').select('challenge_id').eq('user_id', currentUserData.id)
                 ]);
                 if (challengesRes.error || achievementsRes.error) throw new Error('خطا در دریافت چالش‌ها');
                 const allChallenges = challengesRes.data.sort((a,b) => a.points - b.points);
                 const completedChallengeIds = new Set(achievementsRes.data.map(a => a.challenge_id));
                 if (allChallenges.length === 0) {
-                    view.innerHTML = `<p class="text-center text-[var(--text-color-muted)]">چالشی تعریف نشده.</p>`;
+                    view.innerHTML = `<p class="text-center text-[var(--text-color-muted)]">چالشی برای شما تعریف نشده.</p>`;
                     return;
                 }
                 view.innerHTML = allChallenges.map(challenge => {
