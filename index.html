@@ -129,7 +129,7 @@
         const moonIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>`;
 
         // =================================================================
-        // 2. FUNCTION DEFINITIONS (All functions are defined here first)
+        // 2. FUNCTION DEFINITIONS
         // =================================================================
 
         function showToast(message, type = 'info') {
@@ -178,7 +178,7 @@
         function renderClientDashboard() {
             const view = document.getElementById('client-dashboard-view');
             const streak = currentUserData.streaks?.daily || 0;
-            const plan = currentUserData.plan?.[0]?.plan_data;
+            const plan = currentUserData.plan?.[0]?.plan_data; // Use optional chaining
             const sessionsLeft = plan ? (plan.totalSessions || 0) - (plan.attendedSessions || 0) : '-';
             const todayPersian = new Intl.DateTimeFormat('fa-IR', { weekday: 'long' }).format(new Date());
             view.innerHTML = `
@@ -195,7 +195,7 @@
         async function renderDailyWorkout() {
             const workoutListEl = document.getElementById('daily-workout-list');
             if (!workoutListEl) return;
-            const plan = currentUserData.plan?.[0]?.plan_data;
+            const plan = currentUserData.plan?.[0]?.plan_data; // Use optional chaining
             if (!plan || !plan.schedule) {
                 workoutListEl.innerHTML = `<p class="text-center text-[var(--text-color-muted)] p-4">هنوز برنامه‌ای برای شما ثبت نشده است.</p>`;
                 return;
@@ -268,6 +268,7 @@
                 }
                 const { data, error } = await db.from('profiles').update(profileUpdates).eq('id', currentUserData.id).select().single();
                 if (error) throw error;
+                // Update local data with the new info. Important for reactivity.
                 currentUserData = { ...currentUserData, ...data };
                 showToast('پروفایل با موفقیت به‌روز شد!', 'success');
             } catch (error) {
@@ -305,6 +306,9 @@
             }
         }
         
+        // =================================================================
+        // 4. AUTHENTICATION & DATA LOADING
+        // =================================================================
         async function handleAuthAction() {
             const email = dom.emailInput.value.trim();
             const password = dom.passwordInput.value.trim();
@@ -341,8 +345,19 @@
             let profileData = null;
             let attempts = 0;
             while (!profileData && attempts < 5) {
-                const { data, error } = await db.from('profiles').select('*, plan:workout_plans(*)').eq('id', user.id).single();
-                if (data) { profileData = data; break; }
+                // FIX: Separated the queries. First fetch profile.
+                const { data, error } = await db.from('profiles').select('*').eq('id', user.id).single();
+                
+                if (data) { 
+                    profileData = data;
+                    // Now fetch the plan separately if the user is a client
+                    if(profileData.role === 'client') {
+                        const { data: planData, error: planError } = await db.from('workout_plans').select('*').eq('client_id', user.id);
+                        if(planError) console.error("Could not fetch plan:", planError);
+                        else profileData.plan = planData; // Attach plan to profile data
+                    }
+                    break; 
+                }
                 if (error && error.code !== 'PGRST116') {
                     showToast('خطا در ارتباط با دیتابیس.', 'error');
                     await db.auth.signOut();
@@ -367,7 +382,6 @@
         // =================================================================
         // 5. EVENT LISTENERS & APP START
         // =================================================================
-
         function setupEventListeners() {
             dom.themeToggleButton.addEventListener('click', toggleTheme);
             dom.logoutBtn.addEventListener('click', () => db.auth.signOut());
