@@ -175,72 +175,7 @@
             dom.navBar.classList.toggle('hidden', screen !== 'main');
         }
 
-        // =================================================================
-        // AUTHENTICATION & DATA LOADING
-        // =================================================================
-
-        async function handleAuthAction() {
-            const email = dom.emailInput.value.trim();
-            const password = dom.passwordInput.value.trim();
-            if (!email || !password) return showToast('ایمیل و رمز عبور الزامی است.', 'error');
-            dom.authActionBtn.disabled = true;
-            dom.authActionBtn.textContent = 'در حال بررسی...';
-
-            if (isRegisterMode) {
-                const name = dom.nameInput.value.trim();
-                const role = dom.roleSelect.value;
-                if (!name) {
-                    showToast('نام الزامی است.', 'error');
-                    dom.authActionBtn.disabled = false;
-                    dom.authActionBtn.textContent = 'ثبت نام';
-                    return;
-                }
-                const { data, error } = await db.auth.signUp({
-                    email, password, options: { data: { name, role } }
-                });
-                if (error) showToast(error.message, 'error');
-                else {
-                    showToast('ثبت نام موفق بود! لطفا ایمیل خود را برای تایید حساب کاربری چک کنید.', 'success');
-                    dom.toggleAuthModeBtn.click();
-                }
-            } else {
-                const { error } = await db.auth.signInWithPassword({ email, password });
-                if (error) showToast(error.message, 'error');
-            }
-            dom.authActionBtn.disabled = false;
-            dom.authActionBtn.textContent = isRegisterMode ? 'ثبت نام' : 'ورود';
-        }
-
-        async function loadAppData(user) {
-            console.log("Attempting to load app data for user:", user.id);
-            showScreen('loading');
-            
-            let profileData = null;
-            let attempts = 0;
-            while (!profileData && attempts < 5) {
-                const { data, error } = await db.from('profiles').select('*, plan:workout_plans(*)').eq('id', user.id).single();
-                if (data) { profileData = data; break; }
-                if (error && error.code !== 'PGRST116') {
-                    console.error("Critical error fetching profile:", error);
-                    showToast(`خطای جدی در بارگذاری پروفایل: ${error.message}`, 'error');
-                    return db.auth.signOut();
-                }
-                attempts++;
-                await new Promise(resolve => setTimeout(resolve, 500));
-            }
-
-            if (!profileData) {
-                showToast('خطا: پروفایل شما یافت نشد. لطفا دوباره وارد شوید.', 'error');
-                return db.auth.signOut();
-            }
-
-            currentUserData = profileData;
-            showScreen('main');
-
-            if (currentUserData.role === 'trainer') renderTrainerDashboard();
-            else renderClientDashboard();
-        }
-        
+     
         // =================================================================
         // RENDER FUNCTIONS
         // =================================================================
@@ -369,6 +304,71 @@
             } catch (error) {
                 view.innerHTML = `<p class="text-red-500 text-center">${error.message}</p>`;
             }
+        }
+           // =================================================================
+        // AUTHENTICATION & DATA LOADING
+        // =================================================================
+
+        async function handleAuthAction() {
+            const email = dom.emailInput.value.trim();
+            const password = dom.passwordInput.value.trim();
+            if (!email || !password) return showToast('ایمیل و رمز عبور الزامی است.', 'error');
+            dom.authActionBtn.disabled = true;
+            dom.authActionBtn.textContent = 'در حال بررسی...';
+
+            if (isRegisterMode) {
+                const name = dom.nameInput.value.trim();
+                const role = dom.roleSelect.value;
+                if (!name) {
+                    showToast('نام الزامی است.', 'error');
+                    dom.authActionBtn.disabled = false;
+                    dom.authActionBtn.textContent = 'ثبت نام';
+                    return;
+                }
+                const { data, error } = await db.auth.signUp({
+                    email, password, options: { data: { name, role } }
+                });
+                if (error) showToast(error.message, 'error');
+                else {
+                    showToast('ثبت نام موفق بود! لطفا ایمیل خود را برای تایید حساب کاربری چک کنید.', 'success');
+                    dom.toggleAuthModeBtn.click();
+                }
+            } else {
+                const { error } = await db.auth.signInWithPassword({ email, password });
+                if (error) showToast(error.message, 'error');
+            }
+            dom.authActionBtn.disabled = false;
+            dom.authActionBtn.textContent = isRegisterMode ? 'ثبت نام' : 'ورود';
+        }
+
+        async function loadAppData(user) {
+            console.log("Attempting to load app data for user:", user.id);
+            showScreen('loading');
+            
+            let profileData = null;
+            let attempts = 0;
+            while (!profileData && attempts < 5) {
+                const { data, error } = await db.from('profiles').select('*, plan:workout_plans(*)').eq('id', user.id).single();
+                if (data) { profileData = data; break; }
+                if (error && error.code !== 'PGRST116') {
+                    console.error("Critical error fetching profile:", error);
+                    showToast(`خطای جدی در بارگذاری پروفایل: ${error.message}`, 'error');
+                    return db.auth.signOut();
+                }
+                attempts++;
+                await new Promise(resolve => setTimeout(resolve, 500));
+            }
+
+            if (!profileData) {
+                showToast('خطا: پروفایل شما یافت نشد. لطفا دوباره وارد شوید.', 'error');
+                return db.auth.signOut();
+            }
+
+            currentUserData = profileData;
+            showScreen('main');
+
+            if (currentUserData.role === 'trainer') renderTrainerDashboard();
+            else renderClientDashboard();
         }
         
         // =================================================================
