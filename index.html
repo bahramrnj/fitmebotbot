@@ -102,332 +102,328 @@
     <div id="toast-notification" class="toast"></div>
 
     <script type="module">
-      // =================================================================
-// 1. SETUP & INITIALIZATION
-// =================================================================
-const { createClient } = supabase;
-const SUPABASE_URL = 'https://lsitdkehiqcexrugjmjj.supabase.co'; 
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxzaXRka2VoaXFjZXhydWdqbWpqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkzNzczNzksImV4cCI6MjA2NDk1MzM3OX0.pxY5gE85elOAYQYtt15nxej_ws4AiHv6L3P1XMxR6CA';
-let db;
+    <script type="module">
+    // =================================================================
+    // 1. SETUP & INITIALIZATION
+    // =================================================================
+    const { createClient } = supabase;
+    const SUPABASE_URL = 'https://lsitdkehiqcexrugjmjj.supabase.co'; 
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxzaXRka2VoaXFjZXhydWdqbWpqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkzNzczNzksImV4cCI6MjA2NDk1MzM3OX0.pxY5gE85elOAYQYtt15nxej_ws4AiHv6L3P1XMxR6CA';
+    let db;
 
-const dom = {
-    loadingView: document.getElementById('loading-view'), loadingText: document.getElementById('loading-text'),
-    authView: document.getElementById('auth-view'), mainContent: document.getElementById('main-content'),
-    navBar: document.getElementById('bottom-nav-bar'), themeToggleButton: document.getElementById('theme-toggle-btn'),
-    viewTitle: document.getElementById('view-title'), emailInput: document.getElementById('email-input'),
-    passwordInput: document.getElementById('password-input'), nameInput: document.getElementById('name-input'),
-    roleSelect: document.getElementById('role-select'), registerFields: document.getElementById('register-fields'),
-    authActionBtn: document.getElementById('auth-action-btn'), toggleAuthModeBtn: document.getElementById('toggle-auth-mode-btn'),
-    authTitle: document.getElementById('auth-title'), authPromptText: document.getElementById('auth-prompt-text'),
-    logoutBtn: document.getElementById('logout-btn')
-};
+    const dom = {
+        loadingView: document.getElementById('loading-view'), loadingText: document.getElementById('loading-text'),
+        authView: document.getElementById('auth-view'), mainContent: document.getElementById('main-content'),
+        navBar: document.getElementById('bottom-nav-bar'), themeToggleButton: document.getElementById('theme-toggle-btn'),
+        viewTitle: document.getElementById('view-title'), emailInput: document.getElementById('email-input'),
+        passwordInput: document.getElementById('password-input'), nameInput: document.getElementById('name-input'),
+        roleSelect: document.getElementById('role-select'), registerFields: document.getElementById('register-fields'),
+        authActionBtn: document.getElementById('auth-action-btn'), toggleAuthModeBtn: document.getElementById('toggle-auth-mode-btn'),
+        authTitle: document.getElementById('auth-title'), authPromptText: document.getElementById('auth-prompt-text'),
+        logoutBtn: document.getElementById('logout-btn')
+    };
 
-let currentUserData = null;
-let isRegisterMode = false;
-
-const sunIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>`;
-const moonIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>`;
-
-// =================================================================
-// 2. UTILITY & VIEW MANAGEMENT
-// =================================================================
-
-function showToast(message, type = 'info') {
-    const toast = document.getElementById('toast-notification');
-    toast.textContent = message;
-    const bgColor = type === 'success' ? 'bg-green-600' : type === 'error' ? 'bg-red-600' : 'bg-gray-800';
-    toast.className = `toast show ${bgColor}`;
-    setTimeout(() => { toast.className = 'toast'; }, 3500);
-}
-
-function applyTheme(theme) {
-    document.documentElement.setAttribute('data-theme', theme);
-    dom.themeToggleButton.innerHTML = theme === 'dark' ? sunIcon : moonIcon;
-    localStorage.setItem('theme', theme);
-}
-
-function toggleTheme() {
-    applyTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
-}
-
-function loadTheme() {
-    applyTheme(localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));
-}
-
-function showView(viewId, title) {
-    dom.mainContent.querySelectorAll(':scope > div').forEach(v => v.classList.add('hidden'));
-    const view = document.getElementById(viewId);
-    if (view) view.classList.remove('hidden');
-    if (title) dom.viewTitle.textContent = title;
-    dom.navBar.querySelectorAll('.nav-btn').forEach(btn => {
-        let isActive = btn.dataset.view === viewId;
-        if ((viewId === 'trainer-dashboard-view' || viewId === 'client-dashboard-view') && btn.dataset.view === 'home-view') {
-            isActive = true;
-        }
-        btn.classList.toggle('active', isActive);
-    });
-}
-
-function showScreen(screen) {
-    const screens = { loading: dom.loadingView, auth: dom.authView, main: dom.mainContent };
-    Object.values(screens).forEach(s => s.classList.add('hidden'));
-    if(screens[screen]) screens[screen].classList.remove('hidden');
-    dom.navBar.classList.toggle('hidden', screen !== 'main');
-}
-
-// =================================================================
-// 3. RENDER FUNCTIONS (These build the HTML for each view)
-// =================================================================
-
-function renderClientDashboard() {
-    const view = document.getElementById('client-dashboard-view');
-    const streak = currentUserData.streaks?.daily || 0;
-    const plan = currentUserData.plan?.[0]?.plan_data;
-    const sessionsLeft = plan ? (plan.totalSessions || 0) - (plan.attendedSessions || 0) : '-';
-    const todayPersian = new Intl.DateTimeFormat('fa-IR', { weekday: 'long' }).format(new Date());
-
-    view.innerHTML = `
-        <div class="grid grid-cols-2 gap-4">
-            <div class="card p-4 rounded-xl text-center"><p class="text-4xl font-bold text-[var(--accent-color)]">${streak}</p><p class="text-sm text-[var(--text-color-muted)] mt-1">🔥 زنجیره روزانه</p></div>
-            <div class="card p-4 rounded-xl text-center"><p class="text-4xl font-bold text-[var(--accent-color)]">${sessionsLeft >= 0 ? sessionsLeft : '-'}</p><p class="text-sm text-[var(--text-color-muted)] mt-1">📅 جلسات باقی‌مانده</p></div>
-        </div>
-        <div class="card p-6 rounded-xl"><h3 class="text-xl font-bold mb-4">تمرینات امروز (${todayPersian})</h3><div id="daily-workout-list" class="space-y-3"><p class="text-center text-[var(--text-color-muted)] p-4">در حال بارگذاری برنامه تمرینی...</p></div></div>
-    `;
-    renderDailyWorkout();
-    showView('client-dashboard-view', 'داشبورد');
-}
-
-async function renderDailyWorkout() {
-    const workoutListEl = document.getElementById('daily-workout-list');
-    if (!workoutListEl) return;
-    const plan = currentUserData.plan?.[0]?.plan_data;
-    if (!plan || !plan.schedule) {
-        workoutListEl.innerHTML = `<p class="text-center text-[var(--text-color-muted)] p-4">هنوز برنامه‌ای برای شما ثبت نشده است.</p>`;
-        return;
-    }
-    const today = new Intl.DateTimeFormat('fa-IR', { weekday: 'long' }).format(new Date());
-    const todaysWorkout = plan.schedule[today] || [];
-    if (todaysWorkout.length === 0) {
-        workoutListEl.innerHTML = `<div class="text-center p-4 rounded-lg bg-[var(--success-bg)] text-[var(--success-color)]">امروز روز استراحت است!</div>`;
-        return;
-    }
-    workoutListEl.innerHTML = todaysWorkout.map((ex, i) => `
-        <div class="card p-3 flex items-center justify-between transition ${ex.done ? 'opacity-50' : ''}">
-            <div><p class="font-semibold">${ex.name}</p><p class="text-sm text-[var(--text-color-muted)]">${ex.sets} ست × ${ex.reps} تکرار</p></div>
-            <input type="checkbox" data-day="${today}" data-index="${i}" class="exercise-checkbox w-6 h-6 rounded bg-gray-700 border-gray-600 text-[var(--accent-color)] focus:ring-[var(--accent-color)]" ${ex.done ? 'checked' : ''}>
-        </div>
-    `).join('');
-}
-
-async function renderTrainerDashboard() {
-    const view = document.getElementById('trainer-dashboard-view');
-    view.innerHTML = `<div class="card p-4"><h3 class="text-lg font-bold">داشبورد مربی</h3><p class="text-sm text-[var(--text-color-muted)]">کد اتصال شما: <strong class="select-all">${currentUserData.trainer_code}</strong></p></div><div class="card p-6 rounded-xl"><h3 class="text-xl font-bold mb-4">شاگردان شما</h3><div id="client-list" class="space-y-3">در حال بارگذاری...</div></div>`;
-    showView('trainer-dashboard-view', 'داشبورد مربی');
-
-    const { data: clients, error } = await db.from('profiles').select('id, name').eq('linked_trainer_id', currentUserData.id);
-    const clientListEl = document.getElementById('client-list');
-    if(error) return clientListEl.innerHTML = `<p class="text-red-500">خطا در بارگذاری شاگردان</p>`;
-    if(clients.length === 0) return clientListEl.innerHTML = `<p class="text-[var(--text-color-muted)]">هنوز شاگردی به شما متصل نشده.</p>`;
-    clientListEl.innerHTML = clients.map(client => `<div class="card p-3"><p class="font-bold">${client.name}</p></div>`).join('');
-}
-
-function renderProfileView() {
-    const view = document.getElementById('profile-view');
-    const profile = currentUserData.profile_data || {};
-    const isClient = currentUserData.role === 'client';
-    view.innerHTML = `
-        <div class="card p-6 space-y-4">
-            <h3 class="font-bold text-lg border-b border-[var(--card-border)] pb-3">پروفایل من</h3>
-            <div><label for="profile-name" class="text-sm text-[var(--text-color-muted)]">نام</label><input type="text" id="profile-name" value="${currentUserData.name || ''}" class="w-full mt-1 p-2 rounded-lg input-base"></div>
-            <div class="grid grid-cols-3 gap-4">
-                <div><label for="profile-height" class="text-sm text-[var(--text-color-muted)]">قد (cm)</label><input type="number" id="profile-height" value="${profile.height || ''}" class="w-full mt-1 p-2 rounded-lg input-base"></div>
-                <div><label for="profile-weight" class="text-sm text-[var(--text-color-muted)]">وزن (kg)</label><input type="number" id="profile-weight" value="${profile.weight || ''}" class="w-full mt-1 p-2 rounded-lg input-base"></div>
-                <div><label for="profile-age" class="text-sm text-[var(--text-color-muted)]">سن</label><input type="number" id="profile-age" value="${profile.age || ''}" class="w-full mt-1 p-2 rounded-lg input-base"></div>
-            </div>
-            ${isClient ? `<div><hr class="border-[var(--input-border)] my-2"><label for="trainer-code" class="text-sm text-[var(--text-color-muted)]">کد اتصال مربی</label><input type="text" id="trainer-code" placeholder="کدی که از مربی گرفته‌اید" class="w-full mt-1 p-2 rounded-lg input-base"></div>` : ''}
-            <button id="save-profile-btn" class="w-full btn-primary font-bold py-3 rounded-lg mt-4">ذخیره تغییرات</button>
-        </div>`;
-    document.getElementById('save-profile-btn').addEventListener('click', saveProfile);
-    showView('profile-view', 'پروفایل');
-}
-
-async function saveProfile() {
-    const saveButton = document.getElementById('save-profile-btn');
-    saveButton.disabled = true;
-    saveButton.textContent = 'در حال ذخیره...';
-    try {
-        const profileUpdates = {
-            name: document.getElementById('profile-name').value.trim(),
-            profile_data: {
-                height: document.getElementById('profile-height').value || null,
-                weight: document.getElementById('profile-weight').value || null,
-                age: document.getElementById('profile-age').value || null,
-            }
-        };
-        if (currentUserData.role === 'client') {
-            const trainerCodeInput = document.getElementById('trainer-code');
-            if (trainerCodeInput && trainerCodeInput.value.trim()) {
-                const { data: trainer, error } = await db.from('profiles').select('id').eq('trainer_code', trainerCodeInput.value.trim()).single();
-                if (error || !trainer) throw new Error('کد مربی یافت نشد.');
-                profileUpdates.linked_trainer_id = trainer.id;
-            }
-        }
-        const { data, error } = await db.from('profiles').update(profileUpdates).eq('id', currentUserData.id).select().single();
-        if (error) throw error;
-        currentUserData = { ...currentUserData, ...data };
-        showToast('پروفایل با موفقیت به‌روز شد!', 'success');
-    } catch (error) {
-        showToast(`خطا: ${error.message}`, 'error');
-    } finally {
-        saveButton.disabled = false;
-        saveButton.textContent = 'ذخیره تغییرات';
-    }
-}
-
-async function renderChallengesView() {
-    const view = document.getElementById('challenges-view');
-    view.innerHTML = `<p class="text-center text-[var(--text-color-muted)]">در حال بارگذاری...</p>`;
-    showView('challenges-view', 'چالش‌ها');
-    try {
-        const [challengesRes, achievementsRes] = await Promise.all([
-            db.from('challenges').select('*'),
-            db.from('user_achievements').select('challenge_id').eq('user_id', currentUserData.id)
-        ]);
-        if (challengesRes.error || achievementsRes.error) throw new Error('خطا در دریافت چالش‌ها');
-        const allChallenges = challengesRes.data;
-        const completedChallengeIds = new Set(achievementsRes.data.map(a => a.challenge_id));
-        if (allChallenges.length === 0) {
-            view.innerHTML = `<p class="text-center text-[var(--text-color-muted)]">چالشی تعریف نشده.</p>`;
-            return;
-        }
-        view.innerHTML = allChallenges.map(challenge => {
-            const isCompleted = completedChallengeIds.has(challenge.id);
-            const iconHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"></path><circle cx="12" cy="10" r="3"></circle></svg>`;
-            const checkmarkHTML = `<div class="p-1 rounded-full bg-[var(--success-bg)] text-[var(--success-color)]"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></div>`;
-            return `<div class="card p-4 rounded-lg flex items-center gap-4 ${isCompleted ? 'opacity-60' : ''}"><div class="p-3 rounded-full ${isCompleted ? 'bg-[var(--success-color)]' : 'bg-[var(--accent-color)]'} text-white">${iconHTML}</div><div class="flex-grow"><h3 class="font-bold">${challenge.title}</h3><p class="text-sm text-[var(--text-color-muted)]">${challenge.description}</p></div>${isCompleted ? checkmarkHTML : ''}</div>`;
-        }).join('');
-    } catch (error) {
-        view.innerHTML = `<p class="text-red-500 text-center">${error.message}</p>`;
-    }
-}
-
-// =================================================================
-// 4. AUTHENTICATION & DATA LOADING
-// =================================================================
-async function handleAuthAction() {
-    const email = dom.emailInput.value.trim();
-    const password = dom.passwordInput.value.trim();
-    if (!email || !password) return showToast('ایمیل و رمز عبور الزامی است.', 'error');
-    dom.authActionBtn.disabled = true;
-    dom.authActionBtn.textContent = 'در حال بررسی...';
-    if (isRegisterMode) {
-        const name = dom.nameInput.value.trim();
-        const role = dom.roleSelect.value;
-        if (!name) {
-            showToast('نام الزامی است.', 'error');
-            dom.authActionBtn.disabled = false;
-            dom.authActionBtn.textContent = 'ثبت نام';
-            return;
-        }
-        const { error } = await db.auth.signUp({
-            email, password, options: { data: { name, role } }
-        });
-        if (error) showToast(error.message, 'error');
-        else {
-            showToast('ثبت نام موفق بود! لطفا ایمیل خود را برای تایید حساب کاربری چک کنید.', 'success');
-            dom.toggleAuthModeBtn.click();
-        }
-    } else {
-        const { error } = await db.auth.signInWithPassword({ email, password });
-        if (error) showToast(error.message, 'error');
-    }
-    dom.authActionBtn.disabled = false;
-    dom.authActionBtn.textContent = isRegisterMode ? 'ثبت نام' : 'ورود';
-}
-
-async function loadAppData(user) {
-    showScreen('loading');
-    let profileData = null;
-    let attempts = 0;
-    while (!profileData && attempts < 5) {
-        const { data, error } = await db.from('profiles').select('*, plan:workout_plans(*)').eq('id', user.id).single();
-        if (data) { profileData = data; break; }
-        if (error && error.code !== 'PGRST116') {
-            await db.auth.signOut();
-            return;
-        }
-        attempts++;
-        await new Promise(resolve => setTimeout(resolve, 500));
-    }
-    if (!profileData) {
-        showToast('خطا: پروفایل شما یافت نشد.', 'error');
-        return db.auth.signOut();
-    }
-    currentUserData = profileData;
-    showScreen('main');
-    if (currentUserData.role === 'trainer') {
-        renderTrainerDashboard();
-    } else {
-        renderClientDashboard();
-    }
-}
-
-// =================================================================
-// 5. EVENT LISTENERS & APP START
-// =================================================================
-
-function setupEventListeners() {
-    dom.themeToggleButton.addEventListener('click', toggleTheme);
-    dom.logoutBtn.addEventListener('click', () => db.auth.signOut());
-    dom.authActionBtn.addEventListener('click', handleAuthAction);
-    dom.toggleAuthModeBtn.addEventListener('click', () => {
-        isRegisterMode = !isRegisterMode;
-        dom.registerFields.classList.toggle('hidden', !isRegisterMode);
-        dom.authTitle.textContent = isRegisterMode ? 'ایجاد حساب جدید' : 'ورود به حساب کاربری';
-        dom.authActionBtn.textContent = isRegisterMode ? 'ثبت نام' : 'ورود';
-        dom.authPromptText.textContent = isRegisterMode ? 'حساب دارید؟' : 'حساب ندارید؟';
-        dom.toggleAuthModeBtn.textContent = isRegisterMode ? 'وارد شوید' : 'ثبت نام کنید';
-    });
+    let currentUserData = null;
+    let isRegisterMode = false;
     
-    dom.navBar.addEventListener('click', (e) => {
-        const button = e.target.closest('.nav-btn');
-        if (!button || !currentUserData) return;
-        const viewId = button.dataset.view;
-        switch (viewId) {
-            case 'home-view':
-                currentUserData.role === 'trainer' ? renderTrainerDashboard() : renderClientDashboard();
-                break;
-            case 'profile-view':
-                renderProfileView();
-                break;
-            case 'challenges-view':
-                renderChallengesView();
-                break;
-        }
-    });
-}
+    const sunIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>`;
+    const moonIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>`;
 
-function main() {
-    loadTheme();
-    setupEventListeners();
-    db.auth.onAuthStateChange((event, session) => {
-        if (session && session.user) {
-            loadAppData(session.user);
+    // =================================================================
+    // 2. FUNCTION DEFINITIONS (All functions are defined here first)
+    // =================================================================
+
+    function showToast(message, type = 'info') {
+        const toast = document.getElementById('toast-notification');
+        toast.textContent = message;
+        const bgColor = type === 'success' ? 'bg-green-600' : type === 'error' ? 'bg-red-600' : 'bg-gray-800';
+        toast.className = `toast show ${bgColor}`;
+        setTimeout(() => { toast.className = 'toast'; }, 3500);
+    }
+
+    function applyTheme(theme) {
+        document.documentElement.setAttribute('data-theme', theme);
+        dom.themeToggleButton.innerHTML = theme === 'dark' ? sunIcon : moonIcon;
+        localStorage.setItem('theme', theme);
+    }
+
+    function toggleTheme() {
+        applyTheme(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+    }
+
+    function loadTheme() {
+        applyTheme(localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'));
+    }
+
+    function showView(viewId, title) {
+        dom.mainContent.querySelectorAll(':scope > div').forEach(v => v.classList.add('hidden'));
+        const view = document.getElementById(viewId);
+        if (view) view.classList.remove('hidden');
+        if (title) dom.viewTitle.textContent = title;
+        dom.navBar.querySelectorAll('.nav-btn').forEach(btn => {
+            let isActive = btn.dataset.view === viewId;
+            if ((viewId === 'trainer-dashboard-view' || viewId === 'client-dashboard-view') && btn.dataset.view === 'home-view') {
+                isActive = true;
+            }
+            btn.classList.toggle('active', isActive);
+        });
+    }
+
+    function showScreen(screen) {
+        const screens = { loading: dom.loadingView, auth: dom.authView, main: dom.mainContent };
+        Object.values(screens).forEach(s => s.classList.add('hidden'));
+        if(screens[screen]) screens[screen].classList.remove('hidden');
+        dom.navBar.classList.toggle('hidden', screen !== 'main');
+    }
+
+    function renderClientDashboard() {
+        const view = document.getElementById('client-dashboard-view');
+        const streak = currentUserData.streaks?.daily || 0;
+        const plan = currentUserData.plan?.[0]?.plan_data;
+        const sessionsLeft = plan ? (plan.totalSessions || 0) - (plan.attendedSessions || 0) : '-';
+        const todayPersian = new Intl.DateTimeFormat('fa-IR', { weekday: 'long' }).format(new Date());
+        view.innerHTML = `
+            <div class="grid grid-cols-2 gap-4">
+                <div class="card p-4 rounded-xl text-center"><p class="text-4xl font-bold text-[var(--accent-color)]">${streak}</p><p class="text-sm text-[var(--text-color-muted)] mt-1">🔥 زنجیره روزانه</p></div>
+                <div class="card p-4 rounded-xl text-center"><p class="text-4xl font-bold text-[var(--accent-color)]">${sessionsLeft >= 0 ? sessionsLeft : '-'}</p><p class="text-sm text-[var(--text-color-muted)] mt-1">📅 جلسات باقی‌مانده</p></div>
+            </div>
+            <div class="card p-6 rounded-xl"><h3 class="text-xl font-bold mb-4">تمرینات امروز (${todayPersian})</h3><div id="daily-workout-list" class="space-y-3"><p class="text-center text-[var(--text-color-muted)] p-4">در حال بارگذاری برنامه تمرینی...</p></div></div>
+        `;
+        renderDailyWorkout();
+        showView('client-dashboard-view', 'داشبورد');
+    }
+
+    async function renderDailyWorkout() {
+        const workoutListEl = document.getElementById('daily-workout-list');
+        if (!workoutListEl) return;
+        const plan = currentUserData.plan?.[0]?.plan_data;
+        if (!plan || !plan.schedule) {
+            workoutListEl.innerHTML = `<p class="text-center text-[var(--text-color-muted)] p-4">هنوز برنامه‌ای برای شما ثبت نشده است.</p>`;
+            return;
+        }
+        const today = new Intl.DateTimeFormat('fa-IR', { weekday: 'long' }).format(new Date());
+        const todaysWorkout = plan.schedule[today] || [];
+        if (todaysWorkout.length === 0) {
+            workoutListEl.innerHTML = `<div class="text-center p-4 rounded-lg bg-[var(--success-bg)] text-[var(--success-color)]">امروز روز استراحت است!</div>`;
+            return;
+        }
+        workoutListEl.innerHTML = todaysWorkout.map((ex, i) => `
+            <div class="card p-3 flex items-center justify-between transition ${ex.done ? 'opacity-50' : ''}">
+                <div><p class="font-semibold">${ex.name}</p><p class="text-sm text-[var(--text-color-muted)]">${ex.sets} ست × ${ex.reps} تکرار</p></div>
+                <input type="checkbox" data-day="${today}" data-index="${i}" class="exercise-checkbox w-6 h-6 rounded bg-gray-700 border-gray-600 text-[var(--accent-color)] focus:ring-[var(--accent-color)]" ${ex.done ? 'checked' : ''}>
+            </div>
+        `).join('');
+    }
+
+    async function renderTrainerDashboard() {
+        const view = document.getElementById('trainer-dashboard-view');
+        view.innerHTML = `<div class="card p-4"><h3 class="text-lg font-bold">داشبورد مربی</h3><p class="text-sm text-[var(--text-color-muted)]">کد اتصال شما: <strong class="select-all">${currentUserData.trainer_code}</strong></p></div><div class="card p-6 rounded-xl"><h3 class="text-xl font-bold mb-4">شاگردان شما</h3><div id="client-list" class="space-y-3">در حال بارگذاری...</div></div>`;
+        showView('trainer-dashboard-view', 'داشبورد مربی');
+        const { data: clients, error } = await db.from('profiles').select('id, name').eq('linked_trainer_id', currentUserData.id);
+        const clientListEl = document.getElementById('client-list');
+        if(error) return clientListEl.innerHTML = `<p class="text-red-500">خطا در بارگذاری شاگردان</p>`;
+        if(clients.length === 0) return clientListEl.innerHTML = `<p class="text-[var(--text-color-muted)]">هنوز شاگردی به شما متصل نشده.</p>`;
+        clientListEl.innerHTML = clients.map(client => `<div class="card p-3"><p class="font-bold">${client.name}</p></div>`).join('');
+    }
+
+    function renderProfileView() {
+        const view = document.getElementById('profile-view');
+        const profile = currentUserData.profile_data || {};
+        const isClient = currentUserData.role === 'client';
+        view.innerHTML = `
+            <div class="card p-6 space-y-4">
+                <h3 class="font-bold text-lg border-b border-[var(--card-border)] pb-3">پروفایل من</h3>
+                <div><label for="profile-name" class="text-sm text-[var(--text-color-muted)]">نام</label><input type="text" id="profile-name" value="${currentUserData.name || ''}" class="w-full mt-1 p-2 rounded-lg input-base"></div>
+                <div class="grid grid-cols-3 gap-4">
+                    <div><label for="profile-height" class="text-sm text-[var(--text-color-muted)]">قد (cm)</label><input type="number" id="profile-height" value="${profile.height || ''}" class="w-full mt-1 p-2 rounded-lg input-base"></div>
+                    <div><label for="profile-weight" class="text-sm text-[var(--text-color-muted)]">وزن (kg)</label><input type="number" id="profile-weight" value="${profile.weight || ''}" class="w-full mt-1 p-2 rounded-lg input-base"></div>
+                    <div><label for="profile-age" class="text-sm text-[var(--text-color-muted)]">سن</label><input type="number" id="profile-age" value="${profile.age || ''}" class="w-full mt-1 p-2 rounded-lg input-base"></div>
+                </div>
+                ${isClient ? `<div><hr class="border-[var(--input-border)] my-2"><label for="trainer-code" class="text-sm text-[var(--text-color-muted)]">کد اتصال مربی</label><input type="text" id="trainer-code" placeholder="کدی که از مربی گرفته‌اید" class="w-full mt-1 p-2 rounded-lg input-base"></div>` : ''}
+                <button id="save-profile-btn" class="w-full btn-primary font-bold py-3 rounded-lg mt-4">ذخیره تغییرات</button>
+            </div>`;
+        document.getElementById('save-profile-btn').addEventListener('click', saveProfile);
+        showView('profile-view', 'پروفایل');
+    }
+
+    async function saveProfile() {
+        const saveButton = document.getElementById('save-profile-btn');
+        saveButton.disabled = true;
+        saveButton.textContent = 'در حال ذخیره...';
+        try {
+            const profileUpdates = {
+                name: document.getElementById('profile-name').value.trim(),
+                profile_data: {
+                    height: document.getElementById('profile-height').value || null,
+                    weight: document.getElementById('profile-weight').value || null,
+                    age: document.getElementById('profile-age').value || null,
+                }
+            };
+            if (currentUserData.role === 'client') {
+                const trainerCodeInput = document.getElementById('trainer-code');
+                if (trainerCodeInput && trainerCodeInput.value.trim()) {
+                    const { data: trainer, error } = await db.from('profiles').select('id').eq('trainer_code', trainerCodeInput.value.trim()).single();
+                    if (error || !trainer) throw new Error('کد مربی یافت نشد.');
+                    profileUpdates.linked_trainer_id = trainer.id;
+                }
+            }
+            const { data, error } = await db.from('profiles').update(profileUpdates).eq('id', currentUserData.id).select().single();
+            if (error) throw error;
+            currentUserData = { ...currentUserData, ...data };
+            showToast('پروفایل با موفقیت به‌روز شد!', 'success');
+        } catch (error) {
+            showToast(`خطا: ${error.message}`, 'error');
+        } finally {
+            saveButton.disabled = false;
+            saveButton.textContent = 'ذخیره تغییرات';
+        }
+    }
+
+    async function renderChallengesView() {
+        const view = document.getElementById('challenges-view');
+        view.innerHTML = `<p class="text-center text-[var(--text-color-muted)]">در حال بارگذاری...</p>`;
+        showView('challenges-view', 'چالش‌ها');
+        try {
+            const [challengesRes, achievementsRes] = await Promise.all([
+                db.from('challenges').select('*'),
+                db.from('user_achievements').select('challenge_id').eq('user_id', currentUserData.id)
+            ]);
+            if (challengesRes.error || achievementsRes.error) throw new Error('خطا در دریافت چالش‌ها');
+            const allChallenges = challengesRes.data;
+            const completedChallengeIds = new Set(achievementsRes.data.map(a => a.challenge_id));
+            if (allChallenges.length === 0) {
+                view.innerHTML = `<p class="text-center text-[var(--text-color-muted)]">چالشی تعریف نشده.</p>`;
+                return;
+            }
+            view.innerHTML = allChallenges.map(challenge => {
+                const isCompleted = completedChallengeIds.has(challenge.id);
+                const iconHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"></path><circle cx="12" cy="10" r="3"></circle></svg>`;
+                const checkmarkHTML = `<div class="p-1 rounded-full bg-[var(--success-bg)] text-[var(--success-color)]"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></div>`;
+                return `<div class="card p-4 rounded-lg flex items-center gap-4 ${isCompleted ? 'opacity-60' : ''}"><div class="p-3 rounded-full ${isCompleted ? 'bg-[var(--success-color)]' : 'bg-[var(--accent-color)]'} text-white">${iconHTML}</div><div class="flex-grow"><h3 class="font-bold">${challenge.title}</h3><p class="text-sm text-[var(--text-color-muted)]">${challenge.description}</p></div>${isCompleted ? checkmarkHTML : ''}</div>`;
+            }).join('');
+        } catch (error) {
+            view.innerHTML = `<p class="text-red-500 text-center">${error.message}</p>`;
+        }
+    }
+
+    // =================================================================
+    // 4. AUTHENTICATION & DATA LOADING (Defined before being called)
+    // =================================================================
+    async function handleAuthAction() {
+        const email = dom.emailInput.value.trim();
+        const password = dom.passwordInput.value.trim();
+        if (!email || !password) return showToast('ایمیل و رمز عبور الزامی است.', 'error');
+        dom.authActionBtn.disabled = true;
+        dom.authActionBtn.textContent = 'در حال بررسی...';
+        if (isRegisterMode) {
+            const name = dom.nameInput.value.trim();
+            const role = dom.roleSelect.value;
+            if (!name) {
+                showToast('نام الزامی است.', 'error');
+                dom.authActionBtn.disabled = false;
+                dom.authActionBtn.textContent = 'ثبت نام';
+                return;
+            }
+            const { error } = await db.auth.signUp({
+                email, password, options: { data: { name, role } }
+            });
+            if (error) showToast(error.message, 'error');
+            else {
+                showToast('ثبت نام موفق بود! لطفا ایمیل خود را برای تایید حساب کاربری چک کنید.', 'success');
+                dom.toggleAuthModeBtn.click();
+            }
         } else {
-            currentUserData = null;
-            showScreen('auth');
+            const { error } = await db.auth.signInWithPassword({ email, password });
+            if (error) showToast(error.message, 'error');
         }
-    });
-}
+        dom.authActionBtn.disabled = false;
+        dom.authActionBtn.textContent = isRegisterMode ? 'ثبت نام' : 'ورود';
+    }
 
-try {
-    if (!SUPABASE_URL || SUPABASE_URL.startsWith('YOUR_')) throw new Error("Supabase URL/Key not set.");
-    db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    main();
-} catch (e) {
-    dom.loadingText.textContent = `خطای مهلک: ${e.message}`;
-    console.error("Fatal initialization error:", e);
-}
+    async function loadAppData(user) {
+        showScreen('loading');
+        let profileData = null;
+        let attempts = 0;
+        while (!profileData && attempts < 5) {
+            const { data, error } = await db.from('profiles').select('*, plan:workout_plans(*)').eq('id', user.id).single();
+            if (data) { profileData = data; break; }
+            if (error && error.code !== 'PGRST116') {
+                showToast('خطا در ارتباط با دیتابیس.', 'error');
+                await db.auth.signOut();
+                return;
+            }
+            attempts++;
+            await new Promise(resolve => setTimeout(resolve, 500));
+        }
+        if (!profileData) {
+            showToast('خطا: پروفایل شما یافت نشد.', 'error');
+            return db.auth.signOut();
+        }
+        currentUserData = profileData;
+        showScreen('main');
+        if (currentUserData.role === 'trainer') {
+            renderTrainerDashboard();
+        } else {
+            renderClientDashboard();
+        }
+    }
+
+    // =================================================================
+    // 5. EVENT LISTENERS & APP START
+    // =================================================================
+
+    function setupEventListeners() {
+        dom.themeToggleButton.addEventListener('click', toggleTheme);
+        dom.logoutBtn.addEventListener('click', () => db.auth.signOut());
+        dom.authActionBtn.addEventListener('click', handleAuthAction);
+        dom.toggleAuthModeBtn.addEventListener('click', () => {
+            isRegisterMode = !isRegisterMode;
+            dom.registerFields.classList.toggle('hidden', !isRegisterMode);
+            dom.authTitle.textContent = isRegisterMode ? 'ایجاد حساب جدید' : 'ورود به حساب کاربری';
+            dom.authActionBtn.textContent = isRegisterMode ? 'ثبت نام' : 'ورود';
+            dom.authPromptText.textContent = isRegisterMode ? 'حساب دارید؟' : 'حساب ندارید؟';
+            dom.toggleAuthModeBtn.textContent = isRegisterMode ? 'وارد شوید' : 'ثبت نام کنید';
+        });
+        
+        dom.navBar.addEventListener('click', (e) => {
+            const button = e.target.closest('.nav-btn');
+            if (!button || !currentUserData) return;
+            const viewId = button.dataset.view;
+            switch (viewId) {
+                case 'home-view':
+                    currentUserData.role === 'trainer' ? renderTrainerDashboard() : renderClientDashboard();
+                    break;
+                case 'profile-view':
+                    renderProfileView();
+                    break;
+                case 'challenges-view':
+                    renderChallengesView();
+                    break;
+            }
+        });
+    }
+
+    function main() {
+        loadTheme();
+        setupEventListeners();
+        db.auth.onAuthStateChange((event, session) => {
+            if (session && session.user) {
+                loadAppData(session.user);
+            } else {
+                currentUserData = null;
+                showScreen('auth');
+            }
+        });
+    }
+
+    try {
+        if (!SUPABASE_URL || SUPABASE_URL.startsWith('YOUR_')) throw new Error("Supabase URL/Key not set.");
+        db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        main();
+    } catch (e) {
+        dom.loadingText.textContent = `خطای مهلک: ${e.message}`;
+        console.error("Fatal initialization error:", e);
+    }
 </script>
 </body>
 </html>
