@@ -38,11 +38,13 @@
 
     <div id="app-container" class="container mx-auto p-4 max-w-lg min-h-screen flex flex-col">
 
+        <!-- ===== Loading View ===== -->
         <div id="loading-view" class="flex flex-col items-center justify-center flex-grow">
             <svg class="animate-spin h-8 w-8 text-[var(--accent-color)]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
             <p id="loading-text" class="mt-2 text-[var(--text-color-muted)]">در حال بارگذاری...</p>
         </div>
 
+        <!-- ===== Auth View ===== -->
         <div id="auth-view" class="hidden flex-grow flex flex-col justify-center">
              <div class="text-center mb-8">
                  <h1 class="text-4xl font-bold">به FitPlan خوش آمدید</h1>
@@ -66,6 +68,7 @@
             </div>
         </div>
 
+        <!-- ===== Main Content Area ===== -->
         <div id="main-content" class="hidden flex-grow w-full">
             <header id="app-header" class="flex items-center justify-between mb-6">
                 <button id="logout-btn" class="p-2" title="خروج">
@@ -78,12 +81,12 @@
             <div id="client-dashboard-view" class="hidden space-y-6"></div>
             <div id="trainer-dashboard-view" class="hidden space-y-6"></div>
             <div id="challenges-view" class="hidden space-y-6"></div>
-            <div id="rewards-view" class="hidden space-y-6"></div>
             <div id="profile-view" class="hidden space-y-6"></div>
         </div>
 
     </div>
 
+    <!-- Bottom Navigation Bar -->
     <nav id="bottom-nav-bar" class="bottom-nav max-w-lg mx-auto h-20 flex justify-around items-center shadow-lg hidden">
         <button data-view="profile-view" data-title="پروفایل" class="nav-btn flex flex-col items-center gap-1 transition-all">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
@@ -112,12 +115,12 @@
 
         const dom = {
             loadingView: document.getElementById('loading-view'),
+            loadingText: document.getElementById('loading-text'),
             authView: document.getElementById('auth-view'),
             mainContent: document.getElementById('main-content'),
             navBar: document.getElementById('bottom-nav-bar'),
             themeToggleButton: document.getElementById('theme-toggle-btn'),
             viewTitle: document.getElementById('view-title'),
-            // Auth form elements
             emailInput: document.getElementById('email-input'),
             passwordInput: document.getElementById('password-input'),
             nameInput: document.getElementById('name-input'),
@@ -137,13 +140,13 @@
         const moonIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>`;
 
         // =================================================================
-        // CORE APP LOGIC
+        // UTILITY FUNCTIONS
         // =================================================================
 
         function showToast(message, type = 'info') {
             const toast = document.getElementById('toast-notification');
             toast.textContent = message;
-            constbgColor = type === 'success' ? 'bg-green-600' : type === 'error' ? 'bg-red-600' : 'bg-gray-800';
+            const bgColor = type === 'success' ? 'bg-green-600' : type === 'error' ? 'bg-red-600' : 'bg-gray-800';
             toast.className = `toast show ${bgColor}`;
             setTimeout(() => { toast.className = 'toast'; }, 3500);
         }
@@ -165,6 +168,10 @@
             applyTheme(savedTheme || (systemPrefersDark ? 'dark' : 'light'));
         }
 
+        // =================================================================
+        // VIEW MANAGEMENT
+        // =================================================================
+
         function showView(viewId, title) {
             dom.mainContent.querySelectorAll(':scope > div').forEach(v => v.classList.add('hidden'));
             const view = document.getElementById(viewId);
@@ -175,6 +182,31 @@
                 btn.classList.toggle('active', btn.dataset.view === viewId);
             });
         }
+        
+        function showLoadingScreen() {
+            dom.authView.classList.add('hidden');
+            dom.mainContent.classList.add('hidden');
+            dom.navBar.classList.add('hidden');
+            dom.loadingView.classList.remove('hidden');
+        }
+
+        function showAuthScreen() {
+            dom.loadingView.classList.add('hidden');
+            dom.mainContent.classList.add('hidden');
+            dom.navBar.classList.add('hidden');
+            dom.authView.classList.remove('hidden');
+        }
+
+        function showMainScreen() {
+            dom.loadingView.classList.add('hidden');
+            dom.authView.classList.add('hidden');
+            dom.mainContent.classList.remove('hidden');
+            dom.navBar.classList.remove('hidden');
+        }
+
+        // =================================================================
+        // AUTHENTICATION & DATA LOADING
+        // =================================================================
 
         async function handleAuthAction() {
             const email = dom.emailInput.value.trim();
@@ -204,24 +236,49 @@
             } else {
                 const { error } = await db.auth.signInWithPassword({ email, password });
                 if (error) showToast(error.message, 'error');
+                // On successful login, onAuthStateChange will handle the rest
             }
             dom.authActionBtn.disabled = false;
             dom.authActionBtn.textContent = isRegisterMode ? 'ثبت نام' : 'ورود';
         }
 
         async function loadAppData(user) {
-            const { data, error } = await db.from('profiles').select('*').eq('id', user.id).single();
-            if (error) {
-                showToast('خطا در بارگذاری پروفایل.', 'error');
+            console.log("Attempting to load app data for user:", user.id);
+            showLoadingScreen();
+            
+            let profileData = null;
+            let attempts = 0;
+            // This robust retry mechanism is CRUCIAL for handling replication lag after signup.
+            while (!profileData && attempts < 5) {
+                console.log(`Fetching profile... Attempt #${attempts + 1}`);
+                const { data, error } = await db.from('profiles').select('*').eq('id', user.id).single();
+                
+                if (data) {
+                    console.log("Profile fetched successfully:", data);
+                    profileData = data;
+                    break;
+                }
+
+                if (error && error.code !== 'PGRST116') { // 'PGRST116' means "no rows found"
+                    console.error("Critical error fetching profile:", error);
+                    showToast(`خطای جدی در بارگذاری پروفایل: ${error.message}`, 'error');
+                    await db.auth.signOut();
+                    return;
+                }
+                
+                attempts++;
+                await new Promise(resolve => setTimeout(resolve, 500)); // Wait before retrying
+            }
+
+            if (!profileData) {
+                console.error("Could not fetch profile after multiple attempts.");
+                showToast('خطا: پروفایل شما یافت نشد. لطفا دوباره وارد شوید.', 'error');
                 await db.auth.signOut();
                 return;
             }
-            currentUserData = data;
-            
-            dom.loadingView.classList.add('hidden');
-            dom.authView.classList.add('hidden');
-            dom.mainContent.classList.remove('hidden');
-            dom.navBar.classList.remove('hidden');
+
+            currentUserData = profileData;
+            showMainScreen();
 
             // Set default view based on role
             if (currentUserData.role === 'trainer') {
@@ -232,7 +289,7 @@
         }
         
         // =================================================================
-        // RENDER FUNCTIONS (These create the content for each view)
+        // RENDER FUNCTIONS
         // =================================================================
 
         function renderClientDashboard() {
@@ -242,7 +299,7 @@
                     <h3 class="text-lg">سلام، <span class="font-bold">${currentUserData.name}</span>!</h3>
                     <p class="text-sm text-[var(--text-color-muted)]">به داشبورد خود خوش آمدید.</p>
                 </div>
-                `;
+            `;
             showView('client-dashboard-view', 'داشبورد');
         }
 
@@ -253,15 +310,13 @@
                     <h3 class="text-lg font-bold">داشبورد مربی</h3>
                     <p class="text-sm text-[var(--text-color-muted)]">کد اتصال شما: <strong class="select-all">${currentUserData.trainer_code}</strong></p>
                 </div>
-                `;
-            // For trainers, the "Home" button on nav bar should lead here
+            `;
             dom.navBar.querySelector('[data-view="client-dashboard-view"]').dataset.view = 'trainer-dashboard-view';
             showView('trainer-dashboard-view', 'داشبورد مربی');
         }
 
         function renderProfileView() {
             const view = document.getElementById('profile-view');
-            // Logic to render user's profile information and edit form
             view.innerHTML = `<div class="card p-6"><h3 class="font-bold text-lg">پروفایل من</h3><p class="mt-4">ایمیل: ${currentUserData.email}</p><p>نقش: ${currentUserData.role === 'trainer' ? 'مربی' : 'شاگرد'}</p></div>`;
         }
 
@@ -329,13 +384,18 @@
                 
                 const viewId = button.dataset.view;
                 const title = button.dataset.title;
-                showView(viewId, title);
 
-                // Call render function for the specific view
-                if (viewId === 'client-dashboard-view' && currentUserData.role === 'client') renderClientDashboard();
-                if (viewId === 'trainer-dashboard-view' && currentUserData.role === 'trainer') renderTrainerDashboard();
-                if (viewId === 'profile-view') renderProfileView();
-                if (viewId === 'challenges-view') renderChallengesView();
+                if (viewId === 'client-dashboard-view' && currentUserData.role === 'trainer') {
+                    renderTrainerDashboard();
+                } else if (viewId === 'profile-view') {
+                    renderProfileView();
+                } else if (viewId === 'challenges-view') {
+                    renderChallengesView();
+                } else if (viewId === 'client-dashboard-view') {
+                    renderClientDashboard();
+                } else {
+                    showView(viewId, title); // Fallback for other potential views
+                }
             });
         }
 
@@ -344,18 +404,19 @@
         // =================================================================
         
         function main() {
+            console.log("App initializing...");
             loadTheme();
             setupEventListeners();
             
             db.auth.onAuthStateChange((event, session) => {
+                console.log("Auth state changed. Event:", event);
                 if (session && session.user) {
+                    console.log("User is logged in. Session:", session);
                     loadAppData(session.user);
                 } else {
+                    console.log("User is logged out.");
                     currentUserData = null;
-                    dom.loadingView.classList.add('hidden');
-                    dom.mainContent.classList.add('hidden');
-                    dom.navBar.classList.add('hidden');
-                    dom.authView.classList.remove('hidden');
+                    showAuthScreen();
                 }
             });
         }
@@ -365,7 +426,7 @@
             db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
             main();
         } catch (e) {
-            dom.loadingView.classList.remove('hidden');
+            console.error("Fatal initialization error:", e);
             dom.loadingText.textContent = `خطای مهلک: ${e.message}`;
         }
 
