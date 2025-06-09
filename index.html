@@ -198,7 +198,7 @@
         function renderClientDashboard() {
             const view = document.getElementById('client-dashboard-view');
             const streak = currentUserData.streaks?.daily || 0;
-            const plan = currentUserData.plan?.[0]?.plan_data;
+            const plan = currentUserData.plan?.[0]?.plan_data; // Use optional chaining
             const sessionsLeft = plan ? (plan.totalSessions || 0) - (plan.attendedSessions || 0) : '-';
             const todayPersian = new Intl.DateTimeFormat('fa-IR', { weekday: 'long' }).format(new Date());
             view.innerHTML = `
@@ -215,7 +215,7 @@
         async function renderDailyWorkout() {
             const workoutListEl = document.getElementById('daily-workout-list');
             if (!workoutListEl) return;
-            const plan = currentUserData.plan?.[0]?.plan_data;
+            const plan = currentUserData.plan?.[0]?.plan_data; // Use optional chaining
             if (!plan || !plan.schedule) {
                 workoutListEl.innerHTML = `<p class="text-center text-[var(--text-color-muted)] p-4">هنوز برنامه‌ای برای شما ثبت نشده است.</p>`;
                 return;
@@ -242,13 +242,15 @@
             const clientListEl = document.getElementById('client-list');
             if(error) return clientListEl.innerHTML = `<p class="text-red-500">خطا در بارگذاری شاگردان</p>`;
             if(clients.length === 0) return clientListEl.innerHTML = `<p class="text-[var(--text-color-muted)]">هنوز شاگردی به شما متصل نشده.</p>`;
-            clientListEl.innerHTML = clients.map(client => {
+            
+            clientListEl.innerHTML = ''; // Clear loading text
+            clients.forEach(client => {
                 const clientCard = document.createElement('div');
                 clientCard.className = 'card p-3 cursor-pointer hover:border-[var(--accent-color)]';
                 clientCard.innerHTML = `<p class="font-bold">${client.name}</p>`;
                 clientCard.addEventListener('click', () => openPlanModal(client));
-                return clientCard.outerHTML;
-            }).join('');
+                clientListEl.appendChild(clientCard);
+            });
         }
 
         function renderProfileView() {
@@ -292,9 +294,9 @@
                         profileUpdates.linked_trainer_id = trainer.id;
                     }
                 }
-                const { data, error } = await db.from('profiles').update(profileUpdates).eq('id', currentUserData.id).select().single();
+                const { data, error } = await db.from('profiles').update(profileUpdates).eq('id', currentUserData.id).select('*, plan:workout_plans(plan_data)').single();
                 if (error) throw error;
-                currentUserData = { ...currentUserData, ...data };
+                currentUserData = data; // Update local data with the new info
                 showToast('پروفایل با موفقیت به‌روز شد!', 'success');
             } catch (error) {
                 showToast(`خطا: ${error.message}`, 'error');
@@ -402,7 +404,7 @@
                 
                 showToast('برنامه با موفقیت ذخیره شد!', 'success');
                 document.getElementById('plan-modal').classList.add('hidden');
-                renderTrainerDashboard(); // Refresh the dashboard
+                renderTrainerDashboard();
             } catch (error) {
                 showToast(`خطا در ذخیره برنامه: ${error.message}`, 'error');
             } finally {
@@ -534,3 +536,4 @@
     </script>
 </body>
 </html>
+```
