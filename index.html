@@ -1,595 +1,320 @@
 <!DOCTYPE html>
-<html lang="fa" dir="rtl">
-<head>
+<html lang="fa" dir="rtl" data-theme="dark"> <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FitPlan - برنامه تمرینی با Supabase</title>
+    <title>FitPlan - برنامه تمرینی حرفه‌ای</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
+        /* --- تعریف متغیرهای رنگی برای تم‌ها --- */
+        :root[data-theme="dark"] {
+            --bg-color: #111827;
+            --text-color: #f3f4f6;
+            --text-color-muted: #9ca3af;
+            --card-bg: rgba(31, 41, 55, 0.6);
+            --card-border: rgba(245, 158, 11, 0.2);
+            --accent-color: #f59e0b; /* Amber */
+            --accent-text-color: #1f2937;
+            --input-bg: #1f2937;
+        }
+
+        :root[data-theme="light"] {
+            --bg-color: #f3f4f6;
+            --text-color: #1f2937;
+            --text-color-muted: #4b5563;
+            --card-bg: rgba(255, 255, 255, 0.8);
+            --card-border: rgba(0, 0, 0, 0.1);
+            --accent-color: #3b82f6; /* Blue */
+            --accent-text-color: #ffffff;
+            --input-bg: #e5e7eb;
+        }
+
         body {
             font-family: 'Vazirmatn', sans-serif;
-            background-color: #0d1117;
-            color: #e6edf3;
-            background-image: linear-gradient(to bottom right, rgba(13, 17, 23, 0.95), rgba(22, 27, 34, 0.98)), url('https://placehold.co/1920x1080/0d1117/30363d.png?text=Workout');
-            background-size: cover;
-            background-position: center;
-            background-attachment: fixed;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            transition: background-color 0.3s, color 0.3s;
         }
-        .hidden { display: none; }
-        .toast {
-            position: fixed;
-            bottom: -100px;
-            left: 50%;
-            transform: translateX(-50%);
-            padding: 12px 24px;
-            border-radius: 8px;
-            color: white;
-            z-index: 1000;
-            opacity: 0;
-            transition: all 0.4s ease-in-out;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-        }
-        .toast.show { opacity: 1; bottom: 40px; }
         .card {
-            background-color: rgba(22, 27, 34, 0.85);
+            background-color: var(--card-bg);
             backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            border: 1px solid var(--card-border);
+            transition: background-color 0.3s, border-color 0.3s;
         }
-        .btn-primary { background: linear-gradient(to right, #1e6adf, #2b84ea); }
-        .btn-secondary { background: linear-gradient(to right, #2ea043, #38c172); }
-        input[type="date"]::-webkit-calendar-picker-indicator {
-            filter: invert(1);
+        .btn-primary { 
+            background-color: var(--accent-color);
+            color: var(--accent-text-color);
         }
-        button:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
+        .input-base {
+            background-color: var(--input-bg);
+            color: var(--text-color);
+            border: 1px solid var(--card-border);
         }
+        /* --- استایل‌های جدید برای منوی پایین --- */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: var(--card-bg);
+            backdrop-filter: blur(12px);
+            border-top: 1px solid var(--card-border);
+            z-index: 1000;
+        }
+        .nav-btn {
+            color: var(--text-color-muted);
+        }
+        .nav-btn.active {
+            color: var(--accent-color);
+            transform: scale(1.1);
+        }
+        
+        /* کلاس‌های کمکی */
+        .hidden { display: none; }
+        .toast { position: fixed; bottom: -100px; left: 50%; transform: translateX(-50%); padding: 12px 24px; border-radius: 8px; color: white; z-index: 1000; opacity: 0; transition: all 0.4s ease-in-out; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
+        .toast.show { opacity: 1; bottom: 90px; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
     </style>
 </head>
-<body class="text-slate-200">
+<body class="pb-24"> <div id="app-container" class="container mx-auto p-4 max-w-lg min-h-screen flex flex-col">
 
-    <div id="app-container" class="container mx-auto p-4 max-w-lg min-h-screen flex flex-col justify-center">
+        <header id="app-header" class="text-center mb-6 flex items-center justify-between">
+            <button id="theme-toggle-btn" class="p-2 rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-[var(--bg-color)] focus:ring-[var(--accent-color)]">
+                </button>
+            
+            <div class="flex items-center justify-center gap-3 flex-grow">
+                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-[var(--accent-color)]">
+                    <path d="M14.5 7.5h-5l-2-2h9l-2 2zM5 12h14M7.5 16.5h9l-2-2h-5l-2 2z"></path>
+                    <path d="M3 10v4a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-4"></path>
+                    <path d="M4 12h-2"></path><path d="M22 12h-2"></path>
+                </svg>
+                <h1 class="text-4xl font-bold tracking-tight">FitPlan</h1>
+            </div>
+            <div class="w-10"></div> </header>
 
-        <header id="app-header" class="text-center mb-6 flex items-center justify-center gap-3">
-              <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-400"><path d="M12 5C9.24 5 7 7.24 7 10v2c0 1.1.9 2 2 2h6c1.1 0 2-.9 2-2v-2c0-2.76-2.24-5-5-5z"></path><path d="M19 14v-2c0-1.1-.9-2-2-2"></path><path d="M5 12v2c0 1.1.9 2 2 2h2"></path><path d="M12 14v7"></path><path d="M9 21h6"></path></svg>
-              <h1 class="text-4xl font-bold text-white tracking-tight">FitPlan</h1>
-        </header>
-
-        <!-- Loading View -->
-        <div id="loading-view" class="text-center text-white py-10">
-            <svg class="animate-spin h-8 w-8 text-white mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-            <p id="loading-text" class="mt-2">در حال بارگذاری...</p>
+        <div id="loading-view" class="text-center py-10">
+             <svg class="animate-spin h-8 w-8 text-[var(--accent-color)] mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+             <p id="loading-text" class="mt-2">در حال بارگذاری...</p>
         </div>
 
-        <!-- Auth View -->
         <div id="auth-view" class="hidden">
             <div class="card p-8 rounded-xl shadow-lg">
-                <h2 id="auth-title" class="text-2xl font-bold mb-6 text-center text-white">ورود به حساب کاربری</h2>
+                <h2 id="auth-title" class="text-2xl font-bold mb-6 text-center">ورود به حساب کاربری</h2>
                 <div class="space-y-4">
-                    <input type="email" id="email-input" placeholder="ایمیل" autocomplete="email" class="w-full p-3 border border-slate-600 rounded-lg bg-slate-900 text-white focus:ring-2 focus:ring-blue-500">
-                    <input type="password" id="password-input" placeholder="رمز عبور (حداقل ۶ کاراکتر)" autocomplete="current-password" class="w-full p-3 border border-slate-600 rounded-lg bg-slate-900 text-white focus:ring-2 focus:ring-blue-500">
-                    
-                    <div id="register-fields" class="hidden space-y-4">
-                        <input type="text" id="name-input" placeholder="نام شما" class="w-full p-3 border border-slate-600 rounded-lg bg-slate-900 text-white">
-                        <select id="role-select" class="w-full p-3 border border-slate-600 rounded-lg bg-slate-900 text-white">
-                            <option value="client">شاگرد هستم</option>
-                            <option value="trainer">مربی هستم</option>
-                        </select>
+                    <input type="email" id="email-input" placeholder="ایمیل" class="w-full p-3 rounded-lg input-base">
+                    <input type="password" id="password-input" placeholder="رمز عبور" class="w-full p-3 rounded-lg input-base">
+                    <button id="auth-action-btn" class="w-full btn-primary font-bold py-3 rounded-lg">ورود</button>
+                </div>
+                <p class="text-center mt-4 text-sm"><span id="auth-prompt-text">حساب کاربری ندارید؟</span> <button id="toggle-auth-mode-btn" class="text-[var(--accent-color)] hover:underline">ثبت نام کنید</button></p>
+            </div>
+        </div>
+        
+        <div id="main-content" class="hidden flex-grow">
+            <div id="client-dashboard-view" class="hidden space-y-6">
+                 </div>
+            
+            <div id="challenges-view" class="hidden space-y-6">
+                <h2 class="text-2xl font-bold">چالش‌ها و دستاوردها</h2>
+                <div id="challenges-list" class="space-y-4">
                     </div>
-
-                    <button id="auth-action-btn" class="w-full btn-primary text-white font-bold py-3 rounded-lg hover:opacity-90 transition-opacity">ورود</button>
+            </div>
+            
+            <div id="rewards-view" class="hidden space-y-6">
+                <h2 class="text-2xl font-bold">باشگاه مشتریان (جوایز)</h2>
+                <div class="card p-6 rounded-xl text-center">
+                    <p class="text-lg">🎉</p>
+                    <p class="mt-2 text-[var(--text-color-muted)]">این بخش به زودی با جوایز و امکانات هیجان‌انگیز بر اساس میزان فعالیت شما فعال خواهد شد. به تلاش ادامه دهید!</p>
                 </div>
-                <p class="text-center mt-4 text-sm"><span id="auth-prompt-text">حساب کاربری ندارید؟</span> <button id="toggle-auth-mode-btn" class="text-blue-400 hover:underline">ثبت نام کنید</button></p>
             </div>
         </div>
 
-        <!-- Onboarding View -->
-        <div id="onboarding-view" class="hidden">
-             <div class="card p-8 rounded-xl shadow-lg">
-                <h2 class="text-2xl font-bold mb-2 text-center text-white">تکمیل پروفایل</h2>
-                <p class="text-center text-slate-400 mb-6 text-sm">خوش آمدید! برای استفاده از برنامه، لطفا اطلاعات زیر را کامل کنید.</p>
-                <div class="space-y-4">
-                    <input type="number" id="onboarding-height-input" placeholder="قد (سانتی‌متر)" class="w-full p-3 border border-slate-600 rounded-lg bg-slate-900 text-white">
-                    <input type="number" id="onboarding-weight-input" placeholder="وزن (کیلوگرم)" class="w-full p-3 border border-slate-600 rounded-lg bg-slate-900 text-white">
-                    <input type="number" id="onboarding-age-input" placeholder="سن" class="w-full p-3 border border-slate-600 rounded-lg bg-slate-900 text-white">
-                    <button id="complete-onboarding-btn" class="w-full btn-primary text-white font-bold py-3 rounded-lg hover:opacity-90 transition-opacity">ذخیره و ادامه</button>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Client Dashboard View -->
-        <div id="client-dashboard-view" class="hidden space-y-6">
-             <div class="card p-4 rounded-xl flex justify-between items-center">
-                 <div>
-                     <h2 id="client-welcome-name" class="text-xl font-bold text-white"></h2>
-                     <p id="today-date-string" class="text-sm text-slate-400"></p>
-                 </div>
-                 <div>
-                    <button id="profile-btn" class="text-slate-400 hover:text-white" title="ویرایش پروفایل"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></button>
-                    <button id="logout-btn-client" class="text-slate-400 hover:text-red-500 ml-2" title="خروج"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg></button>
-                </div>
-             </div>
-             <div class="grid grid-cols-2 gap-4">
-                 <div class="card p-4 rounded-xl text-center">
-                     <p class="text-3xl font-bold text-amber-400" id="daily-streak-stat">0</p>
-                     <p class="text-sm text-slate-400">🔥 زنجیره روزانه</p>
-                 </div>
-                  <div class="card p-4 rounded-xl text-center">
-                     <p class="text-3xl font-bold text-cyan-400" id="sessions-left-stat">-</p>
-                     <p class="text-sm text-slate-400">📅 جلسات باقی‌مانده</p>
-                 </div>
-             </div>
-             <div class="card p-6 rounded-xl">
-                  <h3 class="text-xl font-bold mb-4 text-white">تمرینات امروز</h3>
-                  <div id="daily-workout-list" class="space-y-3"></div>
-             </div>
-        </div>
-        
-        <!-- Client Profile View -->
-        <div id="client-profile-view" class="hidden space-y-6">
-            <div class="flex justify-between items-center"><h2 class="text-2xl font-bold text-white">پروفایل من</h2><button id="back-to-dashboard-btn" class="text-sm text-blue-400 hover:underline">بازگشت</button></div>
-            <div class="card p-6 rounded-xl space-y-4">
-                 <h3 class="font-bold text-lg text-white">اطلاعات شخصی</h3>
-                 <div><label class="text-sm text-slate-400">نام</label><input type="text" id="profile-name-input" class="w-full mt-1 p-2 border border-slate-600 rounded-lg bg-slate-900 text-white"></div>
-                 <div><label class="text-sm text-slate-400">قد (سانتی‌متر)</label><input type="number" id="height-input" placeholder="مثلا: 180" class="w-full mt-1 p-2 border border-slate-600 rounded-lg bg-slate-900 text-white"></div>
-                 <div><label class="text-sm text-slate-400">وزن (کیلوگرم)</label><input type="number" id="weight-input" placeholder="مثلا: 75" class="w-full mt-1 p-2 border border-slate-600 rounded-lg bg-slate-900 text-white"></div>
-                 <div><label class="text-sm text-slate-400">سن</label><input type="number" id="age-input" placeholder="مثلا: 25" class="w-full mt-1 p-2 border border-slate-600 rounded-lg bg-slate-900 text-white"></div>
-                 <hr class="border-slate-700">
-                 <h3 class="font-bold text-lg text-white">اتصال به مربی</h3>
-                 <div><label class="text-sm text-slate-400">کد اتصال مربی</label><input type="text" id="client-trainer-code-input" placeholder="کدی که از مربی گرفته‌اید" class="w-full mt-1 p-2 border border-slate-600 rounded-lg bg-slate-900 text-white"></div>
-                <button id="save-profile-btn" class="w-full btn-secondary text-white font-bold py-2 rounded-lg mt-2">ذخیره پروفایل</button>
-            </div>
-        </div>
-
-        <!-- Trainer Dashboard View -->
-        <div id="trainer-dashboard-view" class="hidden space-y-6">
-            <div class="card p-4 rounded-xl flex justify-between items-center">
-                <div>
-                    <h2 id="trainer-welcome-name" class="text-xl font-bold text-white"></h2>
-                    <p id="trainer-code-display" class="text-sm text-slate-400 cursor-pointer" title="برای کپی کردن کلیک کنید"></p>
-                </div>
-                 <button id="logout-btn-trainer" class="text-slate-400 hover:text-red-500 ml-2" title="خروج"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg></button>
-            </div>
-             <div class="card p-6 rounded-xl">
-                 <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-xl font-bold text-white">شاگردان من</h3>
-                </div>
-                 <div id="clients-list" class="space-y-3"></div>
-            </div>
-        </div>
-        
-        <!-- Plan Creation/Edit Modal -->
-        <div id="plan-modal" class="hidden fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-50 p-4">
-            <form id="plan-form" class="card rounded-xl p-6 w-full max-w-lg space-y-4 flex flex-col max-h-[90vh]">
-                <h3 id="plan-modal-title" class="text-xl font-bold text-white border-b border-slate-700 pb-3 flex-shrink-0">ایجاد / ویرایش برنامه</h3>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 flex-shrink-0">
-                    <input type="number" id="plan-total-sessions" placeholder="تعداد کل جلسات" class="p-3 border border-slate-600 rounded-lg bg-slate-900 text-white">
-                    <input type="date" id="plan-start-date" title="تاریخ شروع" class="p-3 border border-slate-600 rounded-lg bg-slate-900 text-white">
-                    <input type="date" id="plan-end-date" title="تاریخ پایان" class="p-3 border border-slate-600 rounded-lg bg-slate-900 text-white">
-                </div>
-                <div id="plan-weekly-schedule" class="flex-grow overflow-y-auto space-y-4 p-2 border-t border-b border-slate-700"></div>
-                <div class="flex gap-4 flex-shrink-0">
-                    <button id="cancel-plan-btn" type="button" class="w-1/2 bg-slate-600 text-white font-bold py-2 rounded-lg hover:bg-slate-700">لغو</button>
-                    <button id="save-plan-btn" type="submit" class="w-1/2 btn-primary text-white font-bold py-2 rounded-lg hover:opacity-90">ذخیره برنامه</button>
-                </div>
-            </form>
-        </div>
     </div>
 
+    <nav id="bottom-nav-bar" class="bottom-nav max-w-lg mx-auto h-20 flex justify-around items-center shadow-lg hidden">
+        <button data-view="rewards-view" class="nav-btn flex flex-col items-center gap-1 transition-all">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+            <span class="text-xs font-medium">جوایز</span>
+        </button>
+        <button data-view="client-dashboard-view" class="nav-btn active flex flex-col items-center gap-1 transition-all">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+            <span class="text-xs font-medium">خانه</span>
+        </button>
+        <button data-view="challenges-view" class="nav-btn flex flex-col items-center gap-1 transition-all">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+            <span class="text-xs font-medium">چالش‌ها</span>
+        </button>
+    </nav>
+    
     <div id="toast-notification" class="toast"></div>
 
     <script type="module">
         const { createClient } = supabase;
-
         const SUPABASE_URL = 'https://lsitdkehiqcexrugjmjj.supabase.co'; 
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxzaXRka2VoaXFjZXhydWdqbWpqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDkzNzczNzksImV4cCI6MjA2NDk1MzM3OX0.pxY5gE85elOAYQYtt15nxej_ws4AiHv6L3P1XMxR6CA';
-
         let db;
+        // ... (Supabase initialization code - same as before)
+
+        // --- NEW THEME LOGIC ---
+        const themeToggleButton = document.getElementById('theme-toggle-btn');
+        const sunIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>`;
+        const moonIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>`;
+
+        function applyTheme(theme) {
+            document.documentElement.setAttribute('data-theme', theme);
+            themeToggleButton.innerHTML = theme === 'dark' ? sunIcon : moonIcon;
+            localStorage.setItem('theme', theme);
+        }
+
+        function toggleTheme() {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            applyTheme(newTheme);
+        }
+
+        function loadTheme() {
+            const savedTheme = localStorage.getItem('theme');
+            const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            applyTheme(savedTheme || (systemPrefersDark ? 'dark' : 'light'));
+        }
+        
+        // --- NEW NAVIGATION LOGIC ---
+        const mainContent = document.getElementById('main-content');
+        const navBar = document.getElementById('bottom-nav-bar');
+        const navButtons = navBar.querySelectorAll('.nav-btn');
+
+        function showView(viewId) {
+             // Hide all views within main-content
+            mainContent.querySelectorAll(':scope > div').forEach(v => v.classList.add('hidden'));
+            
+            // Show the requested view
+            const view = document.getElementById(viewId);
+            if (view) view.classList.remove('hidden');
+
+            // Update active state on nav buttons
+            navButtons.forEach(btn => {
+                if (btn.dataset.view === viewId) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+        }
+        
+        navBar.addEventListener('click', (e) => {
+            const button = e.target.closest('.nav-btn');
+            if (button) {
+                showView(button.dataset.view);
+                // Special actions when changing view
+                if(button.dataset.view === 'challenges-view'){
+                    renderChallenges();
+                }
+            }
+        });
+        
+        // --- NEW CHALLENGES LOGIC ---
+        async function renderChallenges() {
+            const listEl = document.getElementById('challenges-list');
+            listEl.innerHTML = `<p class="text-[var(--text-color-muted)]">در حال بارگذاری چالش‌ها...</p>`;
+
+            try {
+                // Fetch all challenges and user's completed achievements in parallel
+                const [challengesRes, achievementsRes] = await Promise.all([
+                    db.from('challenges').select('*'),
+                    db.from('user_achievements').select('challenge_id').eq('user_id', currentUserData.id)
+                ]);
+
+                if (challengesRes.error || achievementsRes.error) {
+                    throw new Error(challengesRes.error?.message || achievementsRes.error?.message);
+                }
+
+                const allChallenges = challengesRes.data;
+                const completedChallengeIds = new Set(achievementsRes.data.map(a => a.challenge_id));
+
+                if (allChallenges.length === 0) {
+                    listEl.innerHTML = `<p class="text-[var(--text-color-muted)] text-center">چالشی برای نمایش وجود ندارد.</p>`;
+                    return;
+                }
+
+                listEl.innerHTML = allChallenges.map(challenge => {
+                    const isCompleted = completedChallengeIds.has(challenge.id);
+                    return `
+                        <div class="card p-4 rounded-lg flex items-center gap-4 ${isCompleted ? 'opacity-50' : ''}">
+                            <div class="p-3 rounded-full ${isCompleted ? 'bg-green-500' : 'bg-[var(--accent-color)]'} text-white">
+                                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                            </div>
+                            <div class="flex-grow">
+                                <h3 class="font-bold text-lg">${challenge.title}</h3>
+                                <p class="text-sm text-[var(--text-color-muted)]">${challenge.description}</p>
+                            </div>
+                            ${isCompleted ? `<span class="text-green-400 font-bold">✓</span>` : ''}
+                        </div>
+                    `;
+                }).join('');
+
+            } catch (error) {
+                listEl.innerHTML = `<p class="text-red-500 text-center">خطا در بارگذاری چالش‌ها: ${error.message}</p>`;
+            }
+        }
+        
+        // --- Existing Logic (Modified for new structure) ---
+        let currentUserData = null; // Keep this global
+
+        async function loadUserDashboard(user) {
+            const { data, error } = await db.from('profiles').select('*').eq('id', user.id).single();
+            if (error) { /* handle error */ return; }
+            currentUserData = data;
+            
+            // Show main app content and nav bar, hide auth
+            document.getElementById('auth-view').classList.add('hidden');
+            mainContent.classList.remove('hidden');
+            navBar.classList.remove('hidden');
+            
+            // Set the initial view to the dashboard
+            showView('client-dashboard-view');
+            // Populate dashboard
+            document.getElementById('client-dashboard-view').innerHTML = `
+                <div class="card p-4 rounded-xl flex justify-between items-center">
+                    <div>
+                        <h2 class="text-xl font-bold">خوش آمدید، ${currentUserData.name}!</h2>
+                        <p class="text-sm text-[var(--text-color-muted)]">امروز یک روز عالی برای تمرین است.</p>
+                    </div>
+                    <button id="logout-btn" class="p-2 rounded-full hover:bg-[var(--input-bg)]" title="خروج">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                    </button>
+                </div>
+                `;
+            document.getElementById('logout-btn').addEventListener('click', () => db.auth.signOut());
+        }
+
+        // --- MAIN APP START ---
+        function main() {
+            loadTheme();
+            themeToggleButton.addEventListener('click', toggleTheme);
+
+            // Supabase auth listener
+            db.auth.onAuthStateChange(async (event, session) => {
+                if (session && session.user) {
+                    await loadUserDashboard(session.user);
+                } else {
+                    document.getElementById('auth-view').classList.remove('hidden');
+                    mainContent.classList.add('hidden');
+                    navBar.classList.add('hidden');
+                    currentUserData = null;
+                }
+            });
+        }
+        
         try {
-            if (SUPABASE_URL.startsWith('YOUR_')) {
+            if (!SUPABASE_URL || !SUPABASE_ANON_KEY || SUPABASE_URL.startsWith('YOUR_')) {
                 throw new Error("اطلاعات اتصال به Supabase (URL و KEY) هنوز وارد نشده است.");
             }
             db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        } catch(e) {
-            console.error("Supabase initialization failed:", e);
-            const loadingText = document.getElementById('loading-text');
-            if (loadingText) {
-                loadingText.textContent = `خطا در اتصال به سرویس: ${e.message}`;
-                const spinner = loadingText.parentElement.querySelector('svg');
-                if (spinner) spinner.style.display = 'none';
-            }
+            main();
+        } catch (e) {
+            document.getElementById('loading-text').textContent = `خطا در اتصال: ${e.message}`;
         }
         
-        const WEEK_DAYS = ['شنبه', 'یکشنبه', 'دوشنبه', 'سه‌شنبه', 'چهارشنبه', 'پنج‌شنبه', 'جمعه'];
-        let currentUserData = null;
-        let currentEditingClient = null;
-        let isRegisterMode = false;
-
-        function showView(viewId) {
-            document.querySelectorAll('#app-container > div:not(header)').forEach(v => v.classList.add('hidden'));
-            const view = document.getElementById(viewId);
-            if (view) view.classList.remove('hidden');
-        }
-        function showToast(message, color = 'bg-slate-800') { const t = document.getElementById('toast-notification'); t.textContent = message; t.className = `toast show ${color}`; setTimeout(() => { t.className = 'toast'; }, 3500); }
-        function getPersianDayName(date) { return new Intl.DateTimeFormat('fa-IR', { weekday: 'long' }).format(date); }
-        function formatDate(dateString) { return dateString ? new Date(dateString).toLocaleDateString('fa-IR', { year: 'numeric', month: 'long', day: 'numeric' }) : '-'; }
-        
-        async function loadUserDashboard(user) {
-            showView('loading-view');
-            let profileData = null;
-            let attempts = 0;
-            
-            // Retry mechanism to handle potential replication delay of the profile after signup
-            while (!profileData && attempts < 5) {
-                const { data, error } = await db.from('profiles').select('*').eq('id', user.id).single();
-                
-                if (data) {
-                    profileData = data;
-                    break;
-                }
-
-                if (error && error.code !== 'PGRST116') { // 'PGRST116' means "no rows found"
-                    showToast(`خطا در بارگذاری پروفایل: ${error.message}`, 'bg-red-500');
-                    await db.auth.signOut();
-                    return;
-                }
-                
-                attempts++;
-                await new Promise(resolve => setTimeout(resolve, 500)); // Wait 500ms before retrying
-            }
-
-            if (profileData) {
-                currentUserData = profileData;
-                if (!currentUserData.profile_data) {
-                    showView('onboarding-view');
-                } else if (currentUserData.role === 'trainer') {
-                    showTrainerDashboard();
-                } else {
-                    showClientDashboard();
-                }
-            } else {
-                 showToast('خطا: پروفایل شما یافت نشد. لطفا دوباره وارد شوید یا با پشتیبانی تماس بگیرید.', 'bg-red-600');
-                 await db.auth.signOut();
-            }
-        }
-
-        async function handleAuthAction(event) {
-            const btn = event.target;
-            btn.disabled = true;
-            
-            const email = document.getElementById('email-input').value.trim();
-            const password = document.getElementById('password-input').value.trim();
-            if (!email || !password) {
-                btn.disabled = false;
-                return showToast('ایمیل و رمز عبور الزامی است.', 'bg-red-600');
-            }
-            
-            showView('loading-view');
-
-            if (isRegisterMode) {
-                const name = document.getElementById('name-input').value.trim();
-                const role = document.getElementById('role-select').value;
-                if (!name) {
-                    showView('auth-view');
-                    btn.disabled = false;
-                    return showToast('نام الزامی است.', 'bg-red-600');
-                }
-
-                const { data, error } = await db.auth.signUp({ 
-                    email, 
-                    password,
-                    options: {
-                        data: {
-                            name: name,
-                            role: role
-                        }
-                    }
-                });
-
-                if (error) {
-                    showView('auth-view');
-                    btn.disabled = false;
-                    return showToast(`خطا در ثبت نام: ${error.message}`, 'bg-red-600');
-                }
-                
-                if(data.user) {
-                    showToast('ثبت نام موفق بود! لطفا ایمیل خود را برای فعال‌سازی حساب کاربری تایید کنید و سپس وارد شوید.', 'bg-green-600');
-                    document.getElementById('password-input').value = '';
-                    document.getElementById('toggle-auth-mode-btn').click(); 
-                    showView('auth-view');
-                }
-            } else {
-                const { error } = await db.auth.signInWithPassword({ email, password });
-                if (error) {
-                    showView('auth-view');
-                    return showToast(`خطا در ورود: ${error.message}`, 'bg-red-600');
-                }
-            }
-            btn.disabled = false;
-        }
-
-        async function handleOnboardingSubmit(user) {
-             const btn = document.getElementById('complete-onboarding-btn');
-             btn.disabled = true;
-
-             const height = document.getElementById('onboarding-height-input').value.trim();
-             const weight = document.getElementById('onboarding-weight-input').value.trim();
-             const age = document.getElementById('onboarding-age-input').value.trim();
-
-             const { error } = await db.from('profiles').update({ 
-                profile_data: { height, weight, age }
-             }).eq('id', user.id);
-
-             if(error) {
-                 showToast(`خطا در ذخیره اطلاعات: ${error.message}`, 'bg-red-500');
-             } else {
-                await loadUserDashboard(user);
-             }
-             btn.disabled = false;
-        }
-        
-        async function showTrainerDashboard() {
-            showView('trainer-dashboard-view');
-            document.getElementById('trainer-welcome-name').textContent = `مربی ${currentUserData.name}`;
-            const codeDisplay = document.getElementById('trainer-code-display');
-            codeDisplay.textContent = `کد اتصال شما: ${currentUserData.trainer_code}`;
-            codeDisplay.onclick = () => {
-                navigator.clipboard.writeText(currentUserData.trainer_code);
-                showToast('کد اتصال کپی شد!', 'bg-green-600');
-            };
-            await renderClientsList();
-        }
-        
-        async function renderClientsList() {
-             const clientListEl = document.getElementById('clients-list');
-             clientListEl.innerHTML = `<p class="text-slate-500 text-center">در حال بارگذاری شاگردان...</p>`;
-             const { data: clients, error } = await db.from('profiles').select('id, name').eq('linked_trainer_id', currentUserData.id);
-            
-             if(error) return clientListEl.innerHTML = `<p class="text-red-500 text-center">خطا در دریافت لیست شاگردان.</p>`;
-             if (clients.length === 0) return clientListEl.innerHTML = `<p class="text-slate-500 text-center p-4">هنوز شاگردی به شما متصل نشده است.</p>`;
-
-            const clientIds = clients.map(c => c.id);
-            const { data: plans, error: plansError } = await db.from('workout_plans').select('*').in('client_id', clientIds);
-            if (plansError) return clientListEl.innerHTML = `<p class="text-red-500 text-center">خطا در دریافت برنامه‌های شاگردان.</p>`;
-            const plansMap = new Map(plans.map(p => [p.client_id, p]));
-
-             clientListEl.innerHTML = '';
-             for(const client of clients) {
-                const plan = plansMap.get(client.id);
-                const clientEl = document.createElement('div');
-                clientEl.className = 'card p-3 space-y-2 cursor-pointer hover:bg-slate-700/50 transition-colors';
-                clientEl.innerHTML = `
-                    <div class="flex justify-between items-center pointer-events-none">
-                        <p class="font-bold text-white">${client.name}</p>
-                        <span class="text-sm text-blue-400">${plan ? 'ویرایش برنامه' : 'ایجاد برنامه'}</span>
-                    </div>
-                     <div class="flex justify-between items-center text-xs text-slate-400 pointer-events-none">
-                        <p>جلسات: <span class="font-mono">${plan?.plan_data?.attendedSessions || 0}/${plan?.plan_data?.totalSessions || '-'}</span></p>
-                        <p>پایان دوره: <span class="font-mono">${formatDate(plan?.plan_data?.endDate)}</span></p>
-                    </div>`;
-                clientEl.addEventListener('click', () => openPlanModal(client));
-                clientListEl.appendChild(clientEl);
-             }
-        }
-        
-        async function openPlanModal(client) {
-            currentEditingClient = client;
-            const modal = document.getElementById('plan-modal');
-            document.getElementById('plan-form').reset();
-            const { data: plan } = await db.from('workout_plans').select('*').eq('client_id', client.id).single();
-
-            const scheduleContainer = document.getElementById('plan-weekly-schedule');
-            scheduleContainer.innerHTML = WEEK_DAYS.map(day => `<div class="p-3 border border-slate-700 rounded-lg bg-slate-800/50 mb-4"><h4 class="text-md font-bold mb-2 text-white">${day}</h4><div class="space-y-2" data-day="${day}"></div><button type="button" class="add-exercise-btn mt-2 text-sm text-blue-400 hover:text-blue-300" data-day="${day}">+ افزودن تمرین</button></div>`).join('');
-
-            if (plan?.plan_data) {
-                const { plan_data: planData } = plan;
-                document.getElementById('plan-total-sessions').value = planData.totalSessions || '';
-                document.getElementById('plan-start-date').value = planData.startDate || '';
-                document.getElementById('plan-end-date').value = planData.endDate || '';
-                Object.keys(planData.schedule || {}).forEach(day => {
-                    const dayContainer = scheduleContainer.querySelector(`div[data-day="${day}"]`);
-                    if(dayContainer) planData.schedule[day].forEach(ex => addExerciseInput(dayContainer, ex));
-                });
-            }
-            modal.classList.remove('hidden');
-        }
-
-        function addExerciseInput(container, exercise = { name: '', sets: '', reps: '' }) {
-            const exerciseNode = document.createElement('div');
-            exerciseNode.className = 'exercise-item flex gap-2 items-center';
-            exerciseNode.innerHTML = `<input type="text" value="${exercise.name}" placeholder="نام تمرین" class="w-1/2 p-2 border border-slate-600 rounded bg-slate-900 text-white"><input type="text" value="${exercise.sets}" placeholder="ست" class="w-1/4 p-2 border border-slate-600 rounded bg-slate-900 text-white text-center"><input type="text" value="${exercise.reps}" placeholder="تکرار" class="w-1/4 p-2 border border-slate-600 rounded bg-slate-900 text-white text-center"><button type="button" class="remove-exercise-btn text-red-500 hover:text-red-400 p-1">✖</button>`;
-            container.appendChild(exerciseNode);
-        }
-        
-        async function savePlan(event) {
-            event.preventDefault();
-            const clientId = currentEditingClient.id;
-            const { data: existingPlan } = await db.from('workout_plans').select('plan_data').eq('client_id', clientId).single();
-            const schedule = {};
-            WEEK_DAYS.forEach(day => {
-                schedule[day] = Array.from(document.querySelectorAll(`#plan-weekly-schedule div[data-day="${day}"] .exercise-item`)).map(item => ({
-                    name: item.querySelector('input[placeholder="نام تمرین"]').value.trim(),
-                    sets: item.querySelector('input[placeholder="ست"]').value.trim(),
-                    reps: item.querySelector('input[placeholder="تکرار"]').value.trim(),
-                    done: false
-                })).filter(ex => ex.name);
-            });
-            const planData = {
-                totalSessions: parseInt(document.getElementById('plan-total-sessions').value) || 0,
-                startDate: document.getElementById('plan-start-date').value,
-                endDate: document.getElementById('plan-end-date').value,
-                attendedSessions: existingPlan?.plan_data?.attendedSessions || 0,
-                attendedDates: existingPlan?.plan_data?.attendedDates || [],
-                schedule
-            };
-            const { error } = await db.from('workout_plans').upsert({ client_id: clientId, trainer_id: currentUserData.id, plan_data: planData }, { onConflict: 'client_id' });
-            if (error) return showToast(`خطا در ذخیره برنامه: ${error.message}`, 'bg-red-600');
-            showToast('برنامه با موفقیت ذخیره شد!', 'bg-green-600');
-            document.getElementById('plan-modal').classList.add('hidden');
-            await renderClientsList();
-        }
-
-        async function showClientDashboard() {
-            showView('client-dashboard-view');
-            document.getElementById('client-welcome-name').textContent = `${currentUserData.name}، خوش آمدید!`;
-            document.getElementById('today-date-string').textContent = `امروز ${getPersianDayName(new Date())}`;
-            await loadClientPlan();
-            checkAndResetStreak();
-            renderStreakInfo();
-            renderDailyWorkout();
-            const planData = currentUserData.plan?.plan_data;
-            const sessionsLeft = (planData?.totalSessions || 0) - (planData?.attendedSessions || 0);
-            document.getElementById('sessions-left-stat').textContent = currentUserData.plan ? (sessionsLeft >= 0 ? sessionsLeft : 0) : '-';
-        }
-
-        async function loadClientPlan() {
-            if (!currentUserData.linked_trainer_id) { currentUserData.plan = null; return; }
-            const { data, error } = await db.from('workout_plans').select('*').eq('client_id', currentUserData.id).single();
-            if (error && error.code !== 'PGRST116') console.error("Error fetching plan:", error);
-            currentUserData.plan = data;
-        }
-
-        function renderDailyWorkout() {
-            const workoutList = document.getElementById('daily-workout-list');
-            const planData = currentUserData.plan?.plan_data;
-            if (!planData?.schedule) return workoutList.innerHTML = `<p class="text-slate-400 text-center p-4">هنوز برنامه‌ای برای شما ثبت نشده است.</p>`;
-            const today = getPersianDayName(new Date());
-            const todaysWorkout = planData.schedule[today] || [];
-            if (todaysWorkout.length === 0) return workoutList.innerHTML = `<div class="text-center p-4 rounded-lg bg-green-500/10 text-green-400">امروز روز استراحت است!</div>`;
-            workoutList.innerHTML = todaysWorkout.map((ex, i) => `
-            <div class="card p-3 flex items-center justify-between transition ${ex.done ? 'opacity-50' : ''}">
-                <div><p class="font-semibold text-white">${ex.name}</p><p class="text-sm text-slate-400">${ex.sets} ست × ${ex.reps} تکرار</p></div>
-                <input type="checkbox" data-day="${today}" data-index="${i}" class="exercise-checkbox w-6 h-6" ${ex.done ? 'checked' : ''}>
-            </div>`).join('');
-        }
-
-        function renderStreakInfo() {
-            document.getElementById('daily-streak-stat').textContent = currentUserData.streaks.daily;
-        }
-
-        async function updateSessionAndStreak() {
-             const todayStr = new Date().toISOString().split('T')[0];
-             const planData = currentUserData.plan.plan_data;
-             if (planData.attendedDates?.includes(todayStr)) return;
-             planData.attendedDates.push(todayStr);
-             planData.attendedSessions = (planData.attendedSessions || 0) + 1;
-             
-             let newStreakCount = 1;
-             if(currentUserData.streaks?.lastCompletedDate) {
-                 const yesterday = new Date();
-                 yesterday.setDate(new Date().getDate() - 1);
-                 if (currentUserData.streaks.lastCompletedDate === yesterday.toISOString().split('T')[0]) {
-                     newStreakCount = (currentUserData.streaks.daily || 0) + 1;
-                 }
-             }
-             currentUserData.streaks = { daily: newStreakCount, lastCompletedDate: todayStr };
-             
-             await db.from('profiles').update({ streaks: currentUserData.streaks }).eq('id', currentUserData.id);
-             await db.from('workout_plans').update({ plan_data: planData }).eq('client_id', currentUserData.id);
-             
-             renderStreakInfo();
-             showToast(`💪 دمت گرم! تمرین امروز کامل شد. زنجیره شما به ${newStreakCount} روز رسید!`, 'bg-green-600');
-             showClientDashboard();
-        }
-        
-        async function checkAndResetStreak() {
-            const streaks = currentUserData.streaks;
-            if (!streaks?.lastCompletedDate) return;
-            const today = new Date();
-            const yesterday = new Date();
-            yesterday.setDate(today.getDate() - 1);
-            if (streaks.lastCompletedDate !== today.toISOString().split('T')[0] && streaks.lastCompletedDate !== yesterday.toISOString().split('T')[0]) {
-                currentUserData.streaks.daily = 0;
-                await db.from('profiles').update({ streaks: currentUserData.streaks }).eq('id', currentUserData.id);
-            }
-        }
-
-        async function toggleExerciseStatus(e) {
-            const { day, index } = e.target.dataset;
-            currentUserData.plan.plan_data.schedule[day][parseInt(index)].done = e.target.checked;
-            await db.from('workout_plans').update({ plan_data: currentUserData.plan.plan_data }).eq('client_id', currentUserData.id);
-            if (currentUserData.plan.plan_data.schedule[day].every(ex => ex.done)) await updateSessionAndStreak();
-            else showClientDashboard();
-        }
-        
-        function showClientProfile() {
-            showView('client-profile-view');
-            document.getElementById('profile-name-input').value = currentUserData.name || '';
-            document.getElementById('height-input').value = currentUserData.profile_data.height || '';
-            document.getElementById('weight-input').value = currentUserData.profile_data.weight || '';
-            document.getElementById('age-input').value = currentUserData.profile_data.age || '';
-        }
-        
-        async function saveProfile() {
-            const updatedProfile = {
-                name: document.getElementById('profile-name-input').value.trim(),
-                profile_data: {
-                    height: document.getElementById('height-input').value.trim(),
-                    weight: document.getElementById('weight-input').value.trim(),
-                    age: document.getElementById('age-input').value.trim()
-                }
-            };
-            const trainerCode = document.getElementById('client-trainer-code-input').value.trim();
-            if (trainerCode) {
-                 const { data: trainer, error } = await db.from('profiles').select('id').eq('trainer_code', trainerCode).single();
-                 if(error || !trainer) return showToast('کد مربی یافت نشد.', 'bg-red-600');
-                 updatedProfile.linked_trainer_id = trainer.id;
-            } else {
-                 updatedProfile.linked_trainer_id = null;
-            }
-            const { error } = await db.from('profiles').update(updatedProfile).eq('id', currentUserData.id);
-            if (error) return showToast('خطا در ذخیره پروفایل.', 'bg-red-600');
-            showToast('پروفایل با موفقیت ذخیره شد.', 'bg-green-600');
-            currentUserData = {...currentUserData, ...updatedProfile};
-            showClientDashboard();
-        }
-        
-        function setupEventListeners() {
-            document.getElementById('toggle-auth-mode-btn').addEventListener('click', () => {
-                isRegisterMode = !isRegisterMode;
-                document.getElementById('auth-title').textContent = isRegisterMode ? 'ایجاد حساب کاربری' : 'ورود';
-                document.getElementById('auth-action-btn').textContent = isRegisterMode ? 'ثبت نام' : 'ورود';
-                document.getElementById('auth-prompt-text').textContent = isRegisterMode ? 'حساب دارید؟' : 'حساب ندارید؟';
-                document.getElementById('toggle-auth-mode-btn').textContent = isRegisterMode ? 'وارد شوید' : 'ثبت نام کنید';
-                document.getElementById('register-fields').classList.toggle('hidden', !isRegisterMode);
-            });
-            document.getElementById('auth-action-btn').addEventListener('click', handleAuthAction);
-            document.getElementById('logout-btn-client').addEventListener('click', () => db.auth.signOut());
-            document.getElementById('logout-btn-trainer').addEventListener('click', () => db.auth.signOut());
-            document.getElementById('profile-btn').addEventListener('click', showClientProfile);
-            document.getElementById('back-to-dashboard-btn').addEventListener('click', () => {
-                if(currentUserData.role === 'trainer') showTrainerDashboard(); else showClientDashboard();
-            });
-            document.getElementById('complete-onboarding-btn').addEventListener('click', async () => {
-                 const { data: { user } } = await db.auth.getUser();
-                 handleOnboardingSubmit(user);
-            });
-            document.getElementById('save-profile-btn').addEventListener('click', saveProfile);
-            document.getElementById('plan-form').addEventListener('submit', savePlan);
-            document.getElementById('cancel-plan-btn').addEventListener('click', () => document.getElementById('plan-modal').classList.add('hidden'));
-            document.addEventListener('click', e => {
-                if (e.target.matches('.add-exercise-btn')) addExerciseInput(e.target.previousElementSibling);
-                if (e.target.matches('.remove-exercise-btn')) e.target.closest('.exercise-item').remove();
-            });
-            document.addEventListener('change', e => { if (e.target.matches('.exercise-checkbox')) toggleExerciseStatus(e); });
-        }
-
-        function main() {
-            showView('loading-view');
-            setupEventListeners();
-            if (db) { 
-                db.auth.onAuthStateChange(async (event, session) => {
-                    if (session && session.user) {
-                       await loadUserDashboard(session.user);
-                    } else {
-                        showView('auth-view');
-                    }
-                });
-            }
-        }
-        main();
     </script>
 </body>
 </html>
