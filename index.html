@@ -368,9 +368,19 @@
                 if (currentUserData.role === 'client') {
                     const trainerCodeInput = document.getElementById('trainer-code');
                     if (trainerCodeInput && trainerCodeInput.value.trim()) {
-                        const { data: trainer, error } = await db.from('profiles').select('id').eq('trainer_code', trainerCodeInput.value.trim()).single();
-                        if (error || !trainer) throw new Error('کد مربی یافت نشد.');
-                        profileUpdates.linked_trainer_id = trainer.id;
+                        const trainerCode = trainerCodeInput.value.trim();
+                        // *** CORRECTED LOGIC: Call the secure database function ***
+                        const { data: trainerId, error: rpcError } = await db.rpc('get_trainer_id_by_code', { trainer_code_to_find: trainerCode });
+
+                        if (rpcError) {
+                            console.error('RPC Error:', rpcError);
+                            throw new Error('خطا در هنگام اعتبارسنجی کد مربی.');
+                        }
+                        if (!trainerId) {
+                            throw new Error('کد مربی یافت نشد.');
+                        }
+                        
+                        profileUpdates.linked_trainer_id = trainerId;
                     }
                 }
                 const { data, error } = await db.from('profiles').update(profileUpdates).eq('id', currentUserData.id).select().single();
@@ -378,13 +388,14 @@
                 currentUserData = { ...currentUserData, ...data };
                 showToast('پروفایل با موفقیت به‌روز شد!', 'success');
                 await checkAndAwardChallenge('PROFILE_COMPLETE');
-                // We re-render to ensure data is fresh, but it's not strictly necessary if no other fields depend on these values.
-                // renderProfileView(); 
             } catch (error) {
                 showToast(`خطا: ${error.message}`, 'error');
             } finally {
-                saveButton.disabled = false;
-                saveButton.textContent = 'ذخیره تغییرات';
+                // Ensure the button is re-enabled, even if the save is successful
+                if (document.getElementById('save-profile-btn')) {
+                    saveButton.disabled = false;
+                    saveButton.textContent = 'ذخیره تغییرات';
+                }
             }
         }
 
