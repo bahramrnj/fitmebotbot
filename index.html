@@ -7,9 +7,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    
     <!-- Persian Datepicker Files -->
-    <!-- JQuery (Dependency for Datepicker) - ADDED -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/persian-datepicker@1.2.0/dist/css/persian-datepicker.min.css"/>
     <script src="https://unpkg.com/persian-date@1.1.0/dist/persian-date.min.js"></script>
@@ -121,9 +119,18 @@
         <form id="plan-form" class="card rounded-xl p-6 w-full max-w-lg space-y-4 flex flex-col max-h-[90vh]">
             <h3 id="plan-modal-title" class="text-xl font-bold border-b border-[var(--card-border)] pb-3 flex-shrink-0">ایجاد / ویرایش برنامه</h3>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 flex-shrink-0">
-                <input type="number" id="plan-total-sessions" placeholder="تعداد کل جلسات" class="p-3 rounded-lg input-base">
-                <input type="text" id="plan-start-date" placeholder="تاریخ شروع" class="p-3 rounded-lg input-base text-center">
-                <input type="text" id="plan-end-date" placeholder="تاریخ پایان" class="p-3 rounded-lg input-base text-center">
+                <div>
+                    <label class="text-sm text-[var(--text-color-muted)]" for="plan-total-sessions">کل جلسات</label>
+                    <input type="number" id="plan-total-sessions" class="w-full mt-1 p-3 rounded-lg input-base">
+                </div>
+                <div>
+                    <label class="text-sm text-[var(--text-color-muted)]" for="plan-start-date">تاریخ شروع</label>
+                    <input type="text" id="plan-start-date" class="w-full mt-1 p-3 rounded-lg input-base text-center" readonly>
+                </div>
+                <div>
+                    <label class="text-sm text-[var(--text-color-muted)]" for="plan-end-date">تاریخ پایان</label>
+                    <input type="text" id="plan-end-date" class="w-full mt-1 p-3 rounded-lg input-base text-center" readonly>
+                </div>
             </div>
             <div id="plan-weekly-schedule" class="flex-grow overflow-y-auto space-y-4 p-2 border-t border-b border-[var(--card-border)]"></div>
             <div class="flex gap-4 flex-shrink-0 pt-4 border-t border-[var(--card-border)]">
@@ -287,24 +294,39 @@
             const view = document.getElementById('trainer-dashboard-view');
             view.innerHTML = `<div class="card p-4"><h3 class="text-lg font-bold">داشبورد مربی</h3><p class="text-sm text-[var(--text-color-muted)]">کد اتصال شما: <strong class="select-all">${currentUserData.trainer_code}</strong></p></div><div class="card p-6 rounded-xl"><h3 class="text-xl font-bold mb-4">شاگردان شما</h3><div id="client-list" class="space-y-3">در حال بارگذاری...</div></div>`;
             showView('trainer-dashboard-view', 'داشبورد مربی');
-            const { data: clients, error } = await db.from('profiles').select('id, name, workout_plans(plan_data)').eq('linked_trainer_id', currentUserData.id);
-            const clientListEl = document.getElementById('client-list');
-            if(error) return clientListEl.innerHTML = `<p class="text-red-500">خطا در بارگذاری شاگردان: ${error.message}</p>`;
-            if(clients.length === 0) return clientListEl.innerHTML = `<p class="text-[var(--text-color-muted)]">هنوز شاگردی به شما متصل نشده.</p>`;
             
-            clientListEl.innerHTML = '';
-            clients.forEach(client => {
-                const plan = client.workout_plans?.[0]?.plan_data;
-                const sessionsLeft = plan ? (plan.totalSessions || 0) - (plan.attendedSessions || 0) : '-';
-                const clientCard = document.createElement('div');
-                clientCard.className = 'card p-3 cursor-pointer hover:border-[var(--accent-color)] flex justify-between items-center';
-                clientCard.innerHTML = `
-                    <p class="font-bold">${client.name}</p>
-                    <span class="text-sm text-[var(--text-color-muted)]">جلسات باقی‌مانده: <span class="font-bold text-[var(--text-color)]">${sessionsLeft >= 0 ? sessionsLeft : '-'}</span></span>
-                `;
-                clientCard.addEventListener('click', () => openPlanModal(client));
-                clientListEl.appendChild(clientCard);
-            });
+            const clientListEl = document.getElementById('client-list');
+            try {
+                const { data: clients, error } = await db.from('profiles').select('id, name').eq('linked_trainer_id', currentUserData.id);
+                if (error) throw error;
+                
+                if (clients.length === 0) {
+                    return clientListEl.innerHTML = `<p class="text-[var(--text-color-muted)]">هنوز شاگردی به شما متصل نشده.</p>`;
+                }
+                
+                const clientIds = clients.map(c => c.id);
+                const { data: plans, error: plansError } = await db.from('workout_plans').select('client_id, plan_data').in('client_id', clientIds);
+                if (plansError) throw plansError;
+                
+                const planMap = new Map(plans.map(p => [p.client_id, p.plan_data]));
+                
+                clientListEl.innerHTML = '';
+                clients.forEach(client => {
+                    const plan = planMap.get(client.id);
+                    const sessionsLeft = plan ? (plan.totalSessions || 0) - (plan.attendedSessions || 0) : '-';
+                    const clientCard = document.createElement('div');
+                    clientCard.className = 'card p-3 cursor-pointer hover:border-[var(--accent-color)] flex justify-between items-center';
+                    clientCard.innerHTML = `
+                        <p class="font-bold">${client.name}</p>
+                        <span class="text-sm text-[var(--text-color-muted)]">جلسات باقی‌مانده: <span class="font-bold text-[var(--text-color)]">${sessionsLeft >= 0 ? sessionsLeft : '-'}</span></span>
+                    `;
+                    clientCard.addEventListener('click', () => openPlanModal(client));
+                    clientListEl.appendChild(clientCard);
+                });
+
+            } catch (error) {
+                clientListEl.innerHTML = `<p class="text-red-500">خطا در بارگذاری شاگردان: ${error.message}</p>`;
+            }
         }
 
         async function saveProfile() {
@@ -529,16 +551,26 @@
 
             const { data: plan } = await db.from('workout_plans').select('*').eq('client_id', client.id).single();
             
-            $("#plan-start-date, #plan-end-date").persianDatepicker({
-                format: 'YYYY-MM-DD',
-                autoClose: true,
-            });
+            const startDateEl = $('#plan-start-date');
+            const endDateEl = $('#plan-end-date');
             
+            const datePickerOptions = {
+                format: 'YYYY/MM/DD',
+                autoClose: true,
+                calendar: {
+                    persian: { locale: 'fa' }
+                },
+                toolbox: { enabled: false }
+            };
+
+            startDateEl.persianDatepicker(datePickerOptions);
+            endDateEl.persianDatepicker(datePickerOptions);
+
             if (plan?.plan_data) {
                 const { plan_data: planData } = plan;
                 document.getElementById('plan-total-sessions').value = planData.totalSessions || '';
-                document.getElementById('plan-start-date').value = planData.startDate || '';
-                document.getElementById('plan-end-date').value = planData.endDate || '';
+                if(planData.startDate) startDateEl.val(planData.startDate);
+                if(planData.endDate) endDateEl.val(planData.endDate);
                 
                 Object.keys(planData.schedule || {}).forEach(day => {
                     const dayContainer = scheduleContainer.querySelector(`div[data-day="${day}"]`);
@@ -577,8 +609,8 @@
 
                 const planData = {
                     totalSessions: parseInt(document.getElementById('plan-total-sessions').value) || 0,
-                    startDate: document.getElementById('plan-start-date').value,
-                    endDate: document.getElementById('plan-end-date').value,
+                    startDate: $('#plan-start-date').val().replaceAll('/', '-'),
+                    endDate: $('#plan-end-date').val().replaceAll('/', '-'),
                     attendedSessions: existingPlan?.plan_data?.attendedSessions || 0,
                     attendedDates: existingPlan?.plan_data?.attendedDates || [],
                     schedule
