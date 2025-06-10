@@ -67,21 +67,21 @@
                  <p class="text-[var(--text-color-muted)] mt-2">برنامه ورزشی خود را حرفه‌ای مدیریت کنید</p>
              </div>
              <div class="card p-8 rounded-xl shadow-lg">
-                <h2 id="auth-title" class="text-2xl font-bold mb-6 text-center">ورود به حساب کاربری</h2>
-                <div class="space-y-4">
-                    <input type="email" id="email-input" placeholder="ایمیل" autocomplete="email" class="w-full p-3 rounded-lg input-base">
-                    <input type="password" id="password-input" placeholder="رمز عبور (حداقل ۶ کاراکتر)" autocomplete="current-password" class="w-full p-3 rounded-lg input-base">
-                    <div id="register-fields" class="hidden space-y-4">
-                        <input type="text" id="name-input" placeholder="نام شما" class="w-full p-3 rounded-lg input-base">
-                        <select id="role-select" class="w-full p-3 rounded-lg input-base">
-                            <option value="client">شاگرد هستم</option>
-                            <option value="trainer">مربی هستم</option>
-                        </select>
-                    </div>
-                    <button id="auth-action-btn" class="w-full btn-primary font-bold py-3 rounded-lg transition-transform hover:scale-105">ورود</button>
-                </div>
-                <p class="text-center mt-4 text-sm"><span id="auth-prompt-text">حساب کاربری ندارید؟</span> <button id="toggle-auth-mode-btn" class="text-[var(--accent-color)] hover:underline font-bold">ثبت نام کنید</button></p>
-            </div>
+                 <h2 id="auth-title" class="text-2xl font-bold mb-6 text-center">ورود به حساب کاربری</h2>
+                 <div class="space-y-4">
+                     <input type="email" id="email-input" placeholder="ایمیل" autocomplete="email" class="w-full p-3 rounded-lg input-base">
+                     <input type="password" id="password-input" placeholder="رمز عبور (حداقل ۶ کاراکتر)" autocomplete="current-password" class="w-full p-3 rounded-lg input-base">
+                     <div id="register-fields" class="hidden space-y-4">
+                         <input type="text" id="name-input" placeholder="نام شما" class="w-full p-3 rounded-lg input-base">
+                         <select id="role-select" class="w-full p-3 rounded-lg input-base">
+                             <option value="client">شاگرد هستم</option>
+                             <option value="trainer">مربی هستم</option>
+                         </select>
+                     </div>
+                     <button id="auth-action-btn" class="w-full btn-primary font-bold py-3 rounded-lg transition-transform hover:scale-105">ورود</button>
+                 </div>
+                 <p class="text-center mt-4 text-sm"><span id="auth-prompt-text">حساب کاربری ندارید؟</span> <button id="toggle-auth-mode-btn" class="text-[var(--accent-color)] hover:underline font-bold">ثبت نام کنید</button></p>
+             </div>
         </div>
 
         <div id="main-content" class="hidden flex-grow w-full">
@@ -378,15 +378,17 @@
                 currentUserData = { ...currentUserData, ...data };
                 showToast('پروفایل با موفقیت به‌روز شد!', 'success');
                 await checkAndAwardChallenge('PROFILE_COMPLETE');
-                renderProfileView();
+                // We re-render to ensure data is fresh, but it's not strictly necessary if no other fields depend on these values.
+                // renderProfileView(); 
             } catch (error) {
                 showToast(`خطا: ${error.message}`, 'error');
+            } finally {
                 saveButton.disabled = false;
                 saveButton.textContent = 'ذخیره تغییرات';
             }
         }
 
-       function renderProfileView() {
+        function renderProfileView() {
             const view = document.getElementById('profile-view');
             const profile = currentUserData.profile_data || {};
             const isClient = currentUserData.role === 'client';
@@ -428,7 +430,7 @@
                         </div>
                         ${isClient ? `<div><hr class="border-[var(--input-border)] my-2"><label for="trainer-code" class="text-sm text-[var(--text-color-muted)]">کد اتصال مربی</label><input type="text" id="trainer-code" placeholder="کدی که از مربی گرفته‌اید" class="w-full mt-1 p-2 rounded-lg input-base"></div>` : ''}
                         
-                        <div id="profile-action-buttons">
+                        <div>
                              <button id="save-profile-btn" class="w-full btn-primary font-bold py-3 rounded-lg mt-4">ذخیره تغییرات</button>
                         </div>
                     </div>
@@ -437,6 +439,7 @@
             `;
             showView('profile-view', 'پروفایل');
         }
+
         async function renderChallengesView() {
             const view = document.getElementById('challenges-view');
             view.innerHTML = `<p class="text-center text-[var(--text-color-muted)]">در حال بارگذاری...</p>`;
@@ -498,7 +501,7 @@
                     return `
                         <div class="card p-4 rounded-lg flex items-center gap-4 ${!canUnlock ? 'opacity-50' : ''}">
                              <div class="p-3 rounded-full bg-gray-500 text-white">
-                               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>
                             </div>
                             <div class="flex-grow">
                                 <h3 class="font-bold text-lg">${reward.title}</h3>
@@ -894,19 +897,15 @@
                 }
             });
 
+            // *** START: IMPROVED EVENT HANDLING ***
             document.body.addEventListener('click', e => {
-                if (e.target.matches('#cancel-plan-btn')) document.getElementById('plan-modal').classList.add('hidden');
-                if (e.target.matches('.add-exercise-btn')) addExerciseInput(e.target.previousElementSibling);
-                if (e.target.matches('.remove-exercise-btn')) e.target.closest('.exercise-item').remove();
-                if (e.target.closest('#customer-club-banner')) {
-                    renderRewardsView();
+                const target = e.target;
+                
+                // --- Profile View Buttons ---
+                if (target.id === 'save-profile-btn') {
+                    saveProfile();
                 }
-                if (e.target.matches('.unlock-voucher-btn')) {
-                    const rewardId = e.target.dataset.rewardId;
-                    const requiredPoints = parseInt(e.target.dataset.requiredPoints);
-                    unlockVoucher(rewardId, requiredPoints);
-                }
-                if (e.target.matches('#copy-referral-btn')) {
+                if (target.id === 'copy-referral-btn') {
                     const linkInput = document.getElementById('referral-link-input');
                     navigator.clipboard.writeText(linkInput.value).then(() => {
                         showToast('لینک معرف کپی شد!', 'success');
@@ -914,15 +913,29 @@
                         showToast('خطا در کپی کردن لینک.', 'error');
                     });
                 }
-                if (e.target.matches('#edit-profile-btn')) {
-                    document.querySelectorAll('#profile-fields input').forEach(input => input.disabled = false);
-                    document.getElementById('profile-action-buttons').classList.remove('hidden');
-                    e.target.classList.add('hidden');
+                
+                // --- Plan Modal Buttons ---
+                if (target.id === 'cancel-plan-btn') {
+                    document.getElementById('plan-modal').classList.add('hidden');
                 }
-                if(e.target.matches('#cancel-edit-btn')) {
-                    renderProfileView();
+                if (target.classList.contains('add-exercise-btn')) {
+                    addExerciseInput(target.previousElementSibling);
+                }
+                if (target.classList.contains('remove-exercise-btn')) {
+                    target.closest('.exercise-item').remove();
+                }
+                
+                // --- Other Global Buttons ---
+                if (target.closest('#customer-club-banner')) {
+                    renderRewardsView();
+                }
+                if (target.classList.contains('unlock-voucher-btn')) {
+                    const rewardId = target.dataset.rewardId;
+                    const requiredPoints = parseInt(target.dataset.requiredPoints);
+                    unlockVoucher(rewardId, requiredPoints);
                 }
             });
+            // *** END: IMPROVED EVENT HANDLING ***
 
             document.body.addEventListener('change', e => {
                 if (e.target.matches('.exercise-checkbox')) {
