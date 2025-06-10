@@ -319,7 +319,7 @@
             
             const clientListEl = document.getElementById('client-list');
             try {
-                const { data: clients, error } = await db.from('profiles').select('id, name, workout_plans!client_id(plan_data)').eq('linked_trainer_id', currentUserData.id);
+                const { data: clients, error } = await db.from('profiles').select('id, name').eq('linked_trainer_id', currentUserData.id);
                 if (error) throw error;
                 
                 if (clients.length === 0) {
