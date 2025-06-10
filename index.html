@@ -33,6 +33,7 @@
         .btn-primary { background-color: var(--accent-color); color: var(--accent-text-color); }
         .btn-secondary { background-color: var(--text-color-muted); color: var(--bg-color); }
         .input-base { background-color: var(--input-bg); color: var(--text-color); border: 1px solid var(--input-border); }
+        .input-base:disabled { opacity: 0.7; cursor: not-allowed; }
         .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background-color: var(--card-bg); backdrop-filter: blur(12px); border-top: 1px solid var(--card-border); z-index: 50; }
         .nav-btn { color: var(--text-color-muted); }
         .nav-btn.active { color: var(--accent-color); transform: translateY(-4px); }
@@ -166,6 +167,7 @@
         let currentUserData = null;
         let currentEditingClient = null;
         let isRegisterMode = false;
+        let referrerId = null;
         
         const sunIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>`;
         const moonIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>`;
@@ -293,28 +295,31 @@
         async function renderTrainerDashboard() {
             const view = document.getElementById('trainer-dashboard-view');
             
-            const referralLink = `${window.location.origin}${window.location.pathname}?ref=${currentUserData.id}`;
-            const referralCardHTML = `
-                <div class="card p-4">
-                    <h3 class="text-lg font-bold">دعوت از مربیان دیگر</h3>
-                    <p class="text-sm text-[var(--text-color-muted)] mt-1">با این لینک مربیان دیگر را دعوت کنید و امتیاز بگیرید!</p>
-                    <div class="flex items-center gap-2 mt-4">
-                        <input type="text" id="referral-link-input" value="${referralLink}" class="w-full p-2 rounded-lg input-base text-sm" readonly>
-                        <button id="copy-referral-btn" class="p-2 btn-secondary rounded-lg">کپی</button>
-                    </div>
+            const trainerClubBannerHTML = `
+                <div id="customer-club-banner" class="card bg-gradient-to-l from-violet-500 via-purple-500 to-fuchsia-500 p-4 rounded-xl flex items-center gap-4 cursor-pointer hover:scale-105 transition-transform">
+                    <div class="text-white"><svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"></path><circle cx="12" cy="10" r="3"></circle></svg></div>
+                    <div class="flex-grow"><h3 class="font-bold text-lg text-white">باشگاه مربیان FitPlan</h3><p class="text-sm text-white opacity-90">با فعالیت در برنامه، امتیاز و جایزه بگیرید!</p></div>
+                    <div class="text-white"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></div>
+                </div>
+            `;
+
+            const goldenChallengeBannerHTML = `
+                <div class="card p-4 rounded-xl border-amber-400/50">
+                    <h3 class="text-lg font-bold text-amber-400">🏆 چالش طلایی ماه!</h3>
+                    <p class="text-sm text-[var(--text-color-muted)] mt-1">این ماه، به ۵ مربی برتر که بیشترین شاگرد فعال را داشته باشند، جوایز نقدی اهدا می‌شود!</p>
                 </div>
             `;
 
             view.innerHTML = `
-                ${referralCardHTML}
-                <div class="card p-4"><h3 class="text-lg font-bold">داشبورد مربی</h3><p class="text-sm text-[var(--text-color-muted)]">کد اتصال شما: <strong class="select-all">${currentUserData.trainer_code}</strong></p></div>
+                ${trainerClubBannerHTML}
+                ${goldenChallengeBannerHTML}
                 <div class="card p-6 rounded-xl"><h3 class="text-xl font-bold mb-4">شاگردان شما</h3><div id="client-list" class="space-y-3">در حال بارگذاری...</div></div>
             `;
             showView('trainer-dashboard-view', 'داشبورد مربی');
             
             const clientListEl = document.getElementById('client-list');
             try {
-                const { data: clients, error } = await db.from('profiles').select('id, name').eq('linked_trainer_id', currentUserData.id);
+                const { data: clients, error } = await db.from('profiles').select('id, name, workout_plans!client_id(plan_data)').eq('linked_trainer_id', currentUserData.id);
                 if (error) throw error;
                 
                 if (clients.length === 0) {
@@ -384,19 +389,55 @@
             const view = document.getElementById('profile-view');
             const profile = currentUserData.profile_data || {};
             const isClient = currentUserData.role === 'client';
+            const isTrainer = currentUserData.role === 'trainer';
+
+            let trainerSectionsHTML = '';
+            if (isTrainer) {
+                const referralLink = `${window.location.origin}${window.location.pathname}?ref=${currentUserData.id}`;
+                trainerSectionsHTML = `
+                    <div class="card p-4">
+                        <h3 class="text-lg font-bold">کد اتصال شاگرد</h3>
+                        <p class="text-sm text-[var(--text-color-muted)] mt-1">این کد را در اختیار شاگردان خود قرار دهید.</p>
+                        <p class="mt-2 p-3 bg-[var(--input-bg)] rounded-md text-center font-mono tracking-widest select-all">${currentUserData.trainer_code}</p>
+                    </div>
+                    <div class="card p-4">
+                        <h3 class="text-lg font-bold">دعوت از مربیان دیگر</h3>
+                        <p class="text-sm text-[var(--text-color-muted)] mt-1">با این لینک مربیان دیگر را دعوت کنید و امتیاز بگیرید!</p>
+                        <div class="flex items-center gap-2 mt-4">
+                            <input type="text" id="referral-link-input" value="${referralLink}" class="w-full p-2 rounded-lg input-base text-sm" readonly>
+                            <button id="copy-referral-btn" class="p-2 btn-secondary rounded-lg">کپی</button>
+                        </div>
+                    </div>
+                `;
+            }
+
             view.innerHTML = `
                 <div class="card p-6 space-y-4">
-                    <h3 class="font-bold text-lg border-b border-[var(--card-border)] pb-3">پروفایل من</h3>
-                    <div><label for="profile-name" class="text-sm text-[var(--text-color-muted)]">نام</label><input type="text" id="profile-name" value="${currentUserData.name || ''}" class="w-full mt-1 p-2 rounded-lg input-base"></div>
-                    <div class="grid grid-cols-3 gap-4">
-                        <div><label for="profile-height" class="text-sm text-[var(--text-color-muted)]">قد (cm)</label><input type="number" id="profile-height" value="${profile.height || ''}" class="w-full mt-1 p-2 rounded-lg input-base"></div>
-                        <div><label for="profile-weight" class="text-sm text-[var(--text-color-muted)]">وزن (kg)</label><input type="number" id="profile-weight" value="${profile.weight || ''}" class="w-full mt-1 p-2 rounded-lg input-base"></div>
-                        <div><label for="profile-age" class="text-sm text-[var(--text-color-muted)]">سن</label><input type="number" id="profile-age" value="${profile.age || ''}" class="w-full mt-1 p-2 rounded-lg input-base"></div>
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <h3 class="font-bold text-xl">${currentUserData.name || 'کاربر'}</h3>
+                            <p class="text-sm text-[var(--text-color-muted)]">${currentUserData.email}</p>
+                        </div>
+                        <button id="edit-profile-btn" class="p-2 rounded-full hover:bg-[var(--input-bg)]">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle><circle cx="5" cy="12" r="1"></circle></svg>
+                        </button>
                     </div>
-                    ${isClient ? `<div><hr class="border-[var(--input-border)] my-2"><label for="trainer-code" class="text-sm text-[var(--text-color-muted)]">کد اتصال مربی</label><input type="text" id="trainer-code" placeholder="کدی که از مربی گرفته‌اید" class="w-full mt-1 p-2 rounded-lg input-base"></div>` : ''}
-                    <button id="save-profile-btn" class="w-full btn-primary font-bold py-3 rounded-lg mt-4">ذخیره تغییرات</button>
-                </div>`;
-            document.getElementById('save-profile-btn').addEventListener('click', saveProfile);
+                    <div id="profile-fields" class="space-y-4">
+                         <div><label for="profile-name" class="text-sm text-[var(--text-color-muted)]">نام</label><input type="text" id="profile-name" value="${currentUserData.name || ''}" class="w-full mt-1 p-2 rounded-lg input-base" disabled></div>
+                        <div class="grid grid-cols-3 gap-4">
+                            <div><label for="profile-height" class="text-sm text-[var(--text-color-muted)]">قد (cm)</label><input type="number" id="profile-height" value="${profile.height || ''}" class="w-full mt-1 p-2 rounded-lg input-base" disabled></div>
+                            <div><label for="profile-weight" class="text-sm text-[var(--text-color-muted)]">وزن (kg)</label><input type="number" id="profile-weight" value="${profile.weight || ''}" class="w-full mt-1 p-2 rounded-lg input-base" disabled></div>
+                            <div><label for="profile-age" class="text-sm text-[var(--text-color-muted)]">سن</label><input type="number" id="profile-age" value="${profile.age || ''}" class="w-full mt-1 p-2 rounded-lg input-base" disabled></div>
+                        </div>
+                        ${isClient ? `<div><hr class="border-[var(--input-border)] my-2"><label for="trainer-code" class="text-sm text-[var(--text-color-muted)]">کد اتصال مربی</label><input type="text" id="trainer-code" placeholder="کدی که از مربی گرفته‌اید" class="w-full mt-1 p-2 rounded-lg input-base" disabled></div>` : ''}
+                        <div id="profile-action-buttons" class="hidden flex gap-4">
+                             <button id="cancel-edit-btn" class="w-1/2 btn-secondary font-bold py-3 rounded-lg mt-4">لغو</button>
+                             <button id="save-profile-btn" class="w-full btn-primary font-bold py-3 rounded-lg mt-4">ذخیره</button>
+                        </div>
+                    </div>
+                </div>
+                ${trainerSectionsHTML}
+            `;
             showView('profile-view', 'پروفایل');
         }
 
@@ -767,7 +808,11 @@
                     dom.authActionBtn.textContent = 'ثبت نام';
                     return;
                 }
-                const { error } = await db.auth.signUp({ email, password, options: { data: { name, role } } });
+                const signUpOptions = { data: { name, role } };
+                if (referrerId) {
+                    signUpOptions.data.referred_by = referrerId;
+                }
+                const { error } = await db.auth.signUp({ email, password, options: signUpOptions });
                 if (error) showToast(error.message, 'error');
                 else {
                     showToast('ثبت نام موفق بود! لطفا ایمیل خود را برای تایید حساب کاربری چک کنید.', 'success');
@@ -859,6 +904,22 @@
                     const requiredPoints = parseInt(e.target.dataset.requiredPoints);
                     unlockVoucher(rewardId, requiredPoints);
                 }
+                if (e.target.matches('#copy-referral-btn')) {
+                    const linkInput = document.getElementById('referral-link-input');
+                    navigator.clipboard.writeText(linkInput.value).then(() => {
+                        showToast('لینک معرف کپی شد!', 'success');
+                    }).catch(err => {
+                        showToast('خطا در کپی کردن لینک.', 'error');
+                    });
+                }
+                if (e.target.matches('#edit-profile-btn')) {
+                    document.querySelectorAll('#profile-fields input').forEach(input => input.disabled = false);
+                    document.getElementById('profile-action-buttons').classList.remove('hidden');
+                    e.target.classList.add('hidden');
+                }
+                if(e.target.matches('#cancel-edit-btn')) {
+                    renderProfileView(); // Just re-render to reset changes
+                }
             });
 
             document.body.addEventListener('change', e => {
@@ -870,7 +931,23 @@
             document.getElementById('plan-form').addEventListener('submit', savePlan);
         }
 
+        function captureReferrer() {
+            try {
+                const urlParams = new URLSearchParams(window.location.search);
+                const ref = urlParams.get('ref');
+                if (ref) {
+                    referrerId = ref;
+                    sessionStorage.setItem('referrerId', ref);
+                } else {
+                    referrerId = sessionStorage.getItem('referrerId');
+                }
+            } catch(e) {
+                console.error("Could not parse URL params:", e);
+            }
+        }
+
         function main() {
+            captureReferrer();
             loadTheme();
             setupEventListeners();
             db.auth.onAuthStateChange((event, session) => {
