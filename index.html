@@ -369,7 +369,7 @@
                     const trainerCodeInput = document.getElementById('trainer-code');
                     if (trainerCodeInput && trainerCodeInput.value.trim()) {
                         const trainerCode = trainerCodeInput.value.trim();
-                        // *** CORRECTED LOGIC: Call the secure database function ***
+                        // Call the secure database function instead of a direct query
                         const { data: trainerId, error: rpcError } = await db.rpc('get_trainer_id_by_code', { trainer_code_to_find: trainerCode });
 
                         if (rpcError) {
@@ -391,7 +391,6 @@
             } catch (error) {
                 showToast(`خطا: ${error.message}`, 'error');
             } finally {
-                // Ensure the button is re-enabled, even if the save is successful
                 if (document.getElementById('save-profile-btn')) {
                     saveButton.disabled = false;
                     saveButton.textContent = 'ذخیره تغییرات';
@@ -562,50 +561,41 @@
             `;
         }
 
+        // *** START: CORRECTED FUNCTION FOR CLAIMING REWARDS ***
         async function unlockVoucher(rewardId, requiredPoints) {
             const btn = document.querySelector(`button[data-reward-id="${rewardId}"]`);
             btn.disabled = true;
             btn.textContent = '...';
 
-            if (currentUserData.points < requiredPoints) {
-                showToast('امتیاز شما برای فعال‌سازی این جایزه کافی نیست.', 'error');
-                btn.disabled = false;
-                btn.textContent = 'فعال‌سازی';
-                return;
-            }
-            
             try {
-                const { data: availableVoucher, error: findError } = await db.from('voucher_codes')
-                    .select('id')
-                    .eq('reward_type_id', rewardId)
-                    .is('assigned_to_user_id', null)
-                    .limit(1)
-                    .single();
+                // Call the secure RPC function instead of client-side logic
+                const { data, error } = await db.rpc('claim_reward', {
+                    reward_id_to_claim: rewardId
+                });
+
+                if (error) {
+                    // The error message from the database function is user-friendly
+                    // We remove the "Exception: " prefix for a cleaner message
+                    throw new Error(error.message.replace('Exception: ',''));
+                }
                 
-                if (findError || !availableVoucher) throw new Error('متاسفانه در حال حاضر کد تخفیفی برای این جایزه موجود نیست.');
-                
-                const newPoints = currentUserData.points - requiredPoints;
-
-                const { error: claimError } = await db.from('voucher_codes')
-                    .update({ assigned_to_user_id: currentUserData.id, assigned_at: new Date().toISOString() })
-                    .eq('id', availableVoucher.id);
-                
-                if (claimError) throw new Error('خطا در تخصیص کد. لطفا دوباره تلاش کنید.');
-
-                const { error: profileError } = await db.from('profiles').update({ points: newPoints }).eq('id', currentUserData.id);
-
-                if (profileError) throw profileError;
-
-                currentUserData.points = newPoints;
+                // If successful, update the local state and re-render
                 showToast('جایزه با موفقیت فعال شد!', 'success');
+                
+                // Update the user's points locally for immediate feedback
+                currentUserData.points -= requiredPoints;
+
+                // Re-render the entire rewards view to show the new point total and the new voucher
                 renderRewardsView();
 
             } catch(error) {
+                // Display the error from the database or the network
                 showToast(`خطا: ${error.message}`, 'error');
-                btn.disabled = false;
+                btn.disabled = false; // Re-enable the button ONLY on error
                 btn.textContent = 'فعال‌سازی';
             }
         }
+        // *** END: CORRECTED FUNCTION FOR CLAIMING REWARDS ***
         
         async function openPlanModal(client) {
             currentEditingClient = client;
