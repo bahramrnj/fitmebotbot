@@ -386,7 +386,7 @@
             }
         }
 
-        function renderProfileView() {
+       function renderProfileView() {
             const view = document.getElementById('profile-view');
             const profile = currentUserData.profile_data || {};
             const isClient = currentUserData.role === 'client';
@@ -414,26 +414,22 @@
 
             view.innerHTML = `
                 <div class="card p-6 space-y-4">
-                    <div class="flex justify-between items-start">
-                        <div>
-                            <h3 class="font-bold text-xl">${currentUserData.name || 'کاربر'}</h3>
-                            <p class="text-sm text-[var(--text-color-muted)]">${currentUserData.email}</p>
-                        </div>
-                        <button id="edit-profile-btn" class="p-2 rounded-full hover:bg-[var(--input-bg)]">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle><circle cx="5" cy="12" r="1"></circle></svg>
-                        </button>
+                    <div>
+                        <h3 class="font-bold text-xl">${currentUserData.name || 'کاربر'}</h3>
+                        <p class="text-sm text-[var(--text-color-muted)]">${currentUserData.email}</p>
                     </div>
+                    
                     <div id="profile-fields" class="space-y-4">
-                         <div><label for="profile-name" class="text-sm text-[var(--text-color-muted)]">نام</label><input type="text" id="profile-name" value="${currentUserData.name || ''}" class="w-full mt-1 p-2 rounded-lg input-base" disabled></div>
+                        <div><label for="profile-name" class="text-sm text-[var(--text-color-muted)]">نام</label><input type="text" id="profile-name" value="${currentUserData.name || ''}" class="w-full mt-1 p-2 rounded-lg input-base"></div>
                         <div class="grid grid-cols-3 gap-4">
-                            <div><label for="profile-height" class="text-sm text-[var(--text-color-muted)]">قد (cm)</label><input type="number" id="profile-height" value="${profile.height || ''}" class="w-full mt-1 p-2 rounded-lg input-base" disabled></div>
-                            <div><label for="profile-weight" class="text-sm text-[var(--text-color-muted)]">وزن (kg)</label><input type="number" id="profile-weight" value="${profile.weight || ''}" class="w-full mt-1 p-2 rounded-lg input-base" disabled></div>
-                            <div><label for="profile-age" class="text-sm text-[var(--text-color-muted)]">سن</label><input type="number" id="profile-age" value="${profile.age || ''}" class="w-full mt-1 p-2 rounded-lg input-base" disabled></div>
+                            <div><label for="profile-height" class="text-sm text-[var(--text-color-muted)]">قد (cm)</label><input type="number" id="profile-height" value="${profile.height || ''}" class="w-full mt-1 p-2 rounded-lg input-base"></div>
+                            <div><label for="profile-weight" class="text-sm text-[var(--text-color-muted)]">وزن (kg)</label><input type="number" id="profile-weight" value="${profile.weight || ''}" class="w-full mt-1 p-2 rounded-lg input-base"></div>
+                            <div><label for="profile-age" class="text-sm text-[var(--text-color-muted)]">سن</label><input type="number" id="profile-age" value="${profile.age || ''}" class="w-full mt-1 p-2 rounded-lg input-base"></div>
                         </div>
-                        ${isClient ? `<div><hr class="border-[var(--input-border)] my-2"><label for="trainer-code" class="text-sm text-[var(--text-color-muted)]">کد اتصال مربی</label><input type="text" id="trainer-code" placeholder="کدی که از مربی گرفته‌اید" class="w-full mt-1 p-2 rounded-lg input-base" disabled></div>` : ''}
-                        <div id="profile-action-buttons" class="hidden flex gap-4">
-                             <button id="cancel-edit-btn" class="w-1/2 btn-secondary font-bold py-3 rounded-lg mt-4">لغو</button>
-                             <button id="save-profile-btn" class="w-full btn-primary font-bold py-3 rounded-lg mt-4">ذخیره</button>
+                        ${isClient ? `<div><hr class="border-[var(--input-border)] my-2"><label for="trainer-code" class="text-sm text-[var(--text-color-muted)]">کد اتصال مربی</label><input type="text" id="trainer-code" placeholder="کدی که از مربی گرفته‌اید" class="w-full mt-1 p-2 rounded-lg input-base"></div>` : ''}
+                        
+                        <div id="profile-action-buttons">
+                             <button id="save-profile-btn" class="w-full btn-primary font-bold py-3 rounded-lg mt-4">ذخیره تغییرات</button>
                         </div>
                     </div>
                 </div>
@@ -441,7 +437,6 @@
             `;
             showView('profile-view', 'پروفایل');
         }
-
         async function renderChallengesView() {
             const view = document.getElementById('challenges-view');
             view.innerHTML = `<p class="text-center text-[var(--text-color-muted)]">در حال بارگذاری...</p>`;
