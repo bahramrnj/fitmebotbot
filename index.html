@@ -319,7 +319,7 @@
             
             const clientListEl = document.getElementById('client-list');
             try {
-                const { data: clients, error } = await db.from('profiles').select('id, name, workout_plans!client_id(plan_data)').eq('linked_trainer_id', currentUserData.id);
+                const { data: clients, error } = await db.from('profiles').select('id, name').eq('linked_trainer_id', currentUserData.id);
                 if (error) throw error;
                 
                 if (clients.length === 0) {
@@ -865,7 +865,7 @@
         function setupEventListeners() {
             dom.themeToggleButton.addEventListener('click', toggleTheme);
             dom.logoutBtn.addEventListener('click', async () => {
-                const { error } = await db.auth.signOut();
+                const { error } = await db.auth.signOut({ scope: 'local' });
                 if (error) {
                     console.error('Error signing out:', error);
                     showToast(`خطا در خروج از سیستم: ${error.message}`, 'error');
@@ -924,7 +924,7 @@
                     e.target.classList.add('hidden');
                 }
                 if(e.target.matches('#cancel-edit-btn')) {
-                    renderProfileView(); // Just re-render to reset changes
+                    renderProfileView();
                 }
             });
 
