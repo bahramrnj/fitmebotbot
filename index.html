@@ -7,6 +7,14 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <!-- Persian Datepicker Files -->
+    <!-- JQuery (Dependency for Datepicker) - ADDED -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/persian-datepicker@1.2.0/dist/css/persian-datepicker.min.css"/>
+    <script src="https://unpkg.com/persian-date@1.1.0/dist/persian-date.min.js"></script>
+    <script src="https://unpkg.com/persian-datepicker@1.2.0/dist/js/persian-datepicker.min.js"></script>
+    
     <style>
         :root[data-theme="dark"] {
             --bg-color: #0d1117; --text-color: #e6edf3; --text-color-muted: #7d8590;
@@ -37,6 +45,11 @@
         details > summary { list-style: none; }
         details > summary::-webkit-details-marker { display: none; }
         details[open] summary .accordion-icon { transform: rotate(90deg); }
+        /* Persian Datepicker Dark Theme */
+        .datepicker-plot-area { background-color: var(--card-bg) !important; border: 1px solid var(--card-border) !important; }
+        .datepicker-plot-area .datepicker-calendar .day.today, .datepicker-plot-area .datepicker-calendar .day.selected { background-color: var(--accent-color) !important; color: var(--accent-text-color) !important;}
+        .datepicker-plot-area .datepicker-calendar .month-grid .header .month-name, .datepicker-plot-area .datepicker-calendar .month-grid .header .year-name, .datepicker-plot-area .datepicker-calendar .day-names .day-name, .datepicker-plot-area .datepicker-navigator .pwt-btn-next, .datepicker-plot-area .datepicker-navigator .pwt-btn-prev { color: var(--text-color) !important; }
+        .datepicker-plot-area .datepicker-calendar .day:hover { background-color: var(--input-bg) !important; }
     </style>
 </head>
 <body class="antialiased">
@@ -109,8 +122,8 @@
             <h3 id="plan-modal-title" class="text-xl font-bold border-b border-[var(--card-border)] pb-3 flex-shrink-0">ایجاد / ویرایش برنامه</h3>
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 flex-shrink-0">
                 <input type="number" id="plan-total-sessions" placeholder="تعداد کل جلسات" class="p-3 rounded-lg input-base">
-                <input type="date" id="plan-start-date" title="تاریخ شروع" class="p-3 rounded-lg input-base">
-                <input type="date" id="plan-end-date" title="تاریخ پایان" class="p-3 rounded-lg input-base">
+                <input type="text" id="plan-start-date" placeholder="تاریخ شروع" class="p-3 rounded-lg input-base text-center">
+                <input type="text" id="plan-end-date" placeholder="تاریخ پایان" class="p-3 rounded-lg input-base text-center">
             </div>
             <div id="plan-weekly-schedule" class="flex-grow overflow-y-auto space-y-4 p-2 border-t border-b border-[var(--card-border)]"></div>
             <div class="flex gap-4 flex-shrink-0 pt-4 border-t border-[var(--card-border)]">
@@ -222,8 +235,24 @@
 
         function renderClientDashboard() {
             const view = document.getElementById('client-dashboard-view');
-            const streak = currentUserData.streaks?.daily || 0;
             const plan = currentUserData.plan?.[0]?.plan_data;
+            const endDate = plan?.endDate;
+            const today = new Date();
+            today.setHours(0,0,0,0);
+
+            if(endDate && new Date(endDate) < today) {
+                view.innerHTML = `
+                    <div class="card p-6 text-center">
+                        <p class="text-2xl mb-4">⚠️</p>
+                        <h3 class="text-xl font-bold">برنامه شما منقضی شده است</h3>
+                        <p class="text-[var(--text-color-muted)] mt-2">برای دریافت برنامه جدید، لطفاً با مربی خود تماس بگیرید.</p>
+                    </div>
+                `;
+                showView('client-dashboard-view', 'اتمام دوره');
+                return;
+            }
+            
+            const streak = currentUserData.streaks?.daily || 0;
             const sessionsLeft = plan ? (plan.totalSessions || 0) - (plan.attendedSessions || 0) : '-';
             const todayPersian = new Intl.DateTimeFormat('fa-IR', { weekday: 'long' }).format(new Date());
 
@@ -258,16 +287,21 @@
             const view = document.getElementById('trainer-dashboard-view');
             view.innerHTML = `<div class="card p-4"><h3 class="text-lg font-bold">داشبورد مربی</h3><p class="text-sm text-[var(--text-color-muted)]">کد اتصال شما: <strong class="select-all">${currentUserData.trainer_code}</strong></p></div><div class="card p-6 rounded-xl"><h3 class="text-xl font-bold mb-4">شاگردان شما</h3><div id="client-list" class="space-y-3">در حال بارگذاری...</div></div>`;
             showView('trainer-dashboard-view', 'داشبورد مربی');
-            const { data: clients, error } = await db.from('profiles').select('id, name').eq('linked_trainer_id', currentUserData.id);
+            const { data: clients, error } = await db.from('profiles').select('id, name, workout_plans(plan_data)').eq('linked_trainer_id', currentUserData.id);
             const clientListEl = document.getElementById('client-list');
-            if(error) return clientListEl.innerHTML = `<p class="text-red-500">خطا در بارگذاری شاگردان</p>`;
+            if(error) return clientListEl.innerHTML = `<p class="text-red-500">خطا در بارگذاری شاگردان: ${error.message}</p>`;
             if(clients.length === 0) return clientListEl.innerHTML = `<p class="text-[var(--text-color-muted)]">هنوز شاگردی به شما متصل نشده.</p>`;
             
             clientListEl.innerHTML = '';
             clients.forEach(client => {
+                const plan = client.workout_plans?.[0]?.plan_data;
+                const sessionsLeft = plan ? (plan.totalSessions || 0) - (plan.attendedSessions || 0) : '-';
                 const clientCard = document.createElement('div');
-                clientCard.className = 'card p-3 cursor-pointer hover:border-[var(--accent-color)]';
-                clientCard.innerHTML = `<p class="font-bold">${client.name}</p>`;
+                clientCard.className = 'card p-3 cursor-pointer hover:border-[var(--accent-color)] flex justify-between items-center';
+                clientCard.innerHTML = `
+                    <p class="font-bold">${client.name}</p>
+                    <span class="text-sm text-[var(--text-color-muted)]">جلسات باقی‌مانده: <span class="font-bold text-[var(--text-color)]">${sessionsLeft >= 0 ? sessionsLeft : '-'}</span></span>
+                `;
                 clientCard.addEventListener('click', () => openPlanModal(client));
                 clientListEl.appendChild(clientCard);
             });
@@ -298,6 +332,7 @@
                 if (error) throw error;
                 currentUserData = { ...currentUserData, ...data };
                 showToast('پروفایل با موفقیت به‌روز شد!', 'success');
+                await checkAndAwardChallenge('PROFILE_COMPLETE');
             } catch (error) {
                 showToast(`خطا: ${error.message}`, 'error');
             } finally {
@@ -384,8 +419,6 @@
 
                 const rewardsHTML = rewardTypes.sort((a,b) => a.required_points - b.required_points).map(reward => {
                     const canUnlock = userPoints >= reward.required_points;
-                    const buttonHTML = `<button data-reward-id="${reward.id}" data-required-points="${reward.required_points}" class="unlock-voucher-btn btn-primary font-bold py-2 px-4 rounded-lg text-sm shrink-0" ${!canUnlock ? 'disabled' : ''}>فعال‌سازی</button>`;
-                    
                     return `
                         <div class="card p-4 rounded-lg flex items-center gap-4 ${!canUnlock ? 'opacity-50' : ''}">
                              <div class="p-3 rounded-full bg-gray-500 text-white">
@@ -396,7 +429,7 @@
                                 <p class="text-sm text-[var(--text-color-muted)]">${reward.description}</p>
                                 <p class="text-sm font-bold text-amber-400 mt-1">${reward.required_points} امتیاز لازم</p>
                             </div>
-                            ${buttonHTML}
+                            <button data-reward-id="${reward.id}" data-required-points="${reward.required_points}" class="unlock-voucher-btn btn-primary font-bold py-2 px-4 rounded-lg text-sm shrink-0" ${!canUnlock ? 'disabled' : ''}>فعال‌سازی</button>
                         </div>
                     `;
                 }).join('');
@@ -495,12 +528,18 @@
             scheduleContainer.innerHTML = WEEK_DAYS.map(day => `<div class="p-3 border border-[var(--input-border)] rounded-lg bg-[var(--bg-color)] mb-4"><h4 class="text-md font-bold mb-2">${day}</h4><div class="space-y-2" data-day="${day}"></div><button type="button" class="add-exercise-btn mt-2 text-sm text-[var(--accent-color)] hover:underline" data-day="${day}">+ افزودن تمرین</button></div>`).join('');
 
             const { data: plan } = await db.from('workout_plans').select('*').eq('client_id', client.id).single();
-
+            
+            $("#plan-start-date, #plan-end-date").persianDatepicker({
+                format: 'YYYY-MM-DD',
+                autoClose: true,
+            });
+            
             if (plan?.plan_data) {
                 const { plan_data: planData } = plan;
                 document.getElementById('plan-total-sessions').value = planData.totalSessions || '';
                 document.getElementById('plan-start-date').value = planData.startDate || '';
                 document.getElementById('plan-end-date').value = planData.endDate || '';
+                
                 Object.keys(planData.schedule || {}).forEach(day => {
                     const dayContainer = scheduleContainer.querySelector(`div[data-day="${day}"]`);
                     if(dayContainer) planData.schedule[day].forEach(ex => addExerciseInput(dayContainer, ex));
@@ -598,6 +637,8 @@
                 currentUserData.plan[0].plan_data = planData;
                 showToast(`💪 عالی بود! تمرین امروز کامل شد. زنجیره شما به ${newStreakCount} روز رسید!`, 'success');
                 renderClientDashboard();
+                await checkAndAwardChallenge('FIRST_WORKOUT');
+                await checkAndAwardChallenge('STREAK_X', newStreakCount);
             } catch (error) {
                 showToast(`خطا در به‌روزرسانی آمار: ${error.message}`, 'error');
             }
@@ -627,7 +668,41 @@
                 checkbox.closest('.card').classList.toggle('opacity-50', !isChecked);
             }
         }
+        
+        async function checkAndAwardChallenge(type, value = null) {
+            try {
+                const { data: challenge } = await db.from('challenges').select('*').eq('challenge_type', type).single();
+                if(!challenge) return;
 
+                const { data: existingAchievement } = await db.from('user_achievements')
+                    .select('id').eq('user_id', currentUserData.id).eq('challenge_id', challenge.id).single();
+
+                if (existingAchievement) return;
+
+                let isCompleted = false;
+                if (type === 'PROFILE_COMPLETE') {
+                    const pd = currentUserData.profile_data;
+                    isCompleted = pd && pd.height && pd.weight && pd.age;
+                } else if (type === 'STREAK_X' && value >= challenge.challenge_value) {
+                    isCompleted = true;
+                } else if (type === 'FIRST_WORKOUT') {
+                    isCompleted = true;
+                }
+
+                if(isCompleted) {
+                    await db.from('user_achievements').insert({ user_id: currentUserData.id, challenge_id: challenge.id });
+                    
+                    const newPoints = (currentUserData.points || 0) + challenge.points;
+                    await db.from('profiles').update({ points: newPoints }).eq('id', currentUserData.id);
+                    
+                    currentUserData.points = newPoints;
+                    showToast(`🎉 چالش «${challenge.title}» تکمیل شد! ${challenge.points} امتیاز کسب کردید.`, 'success');
+                }
+            } catch(error) {
+                console.error("Error awarding challenge:", error);
+            }
+        }
+        
         async function handleAuthAction() {
             const email = dom.emailInput.value.trim();
             const password = dom.passwordInput.value.trim();
