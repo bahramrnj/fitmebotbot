@@ -292,7 +292,24 @@
 
         async function renderTrainerDashboard() {
             const view = document.getElementById('trainer-dashboard-view');
-            view.innerHTML = `<div class="card p-4"><h3 class="text-lg font-bold">داشبورد مربی</h3><p class="text-sm text-[var(--text-color-muted)]">کد اتصال شما: <strong class="select-all">${currentUserData.trainer_code}</strong></p></div><div class="card p-6 rounded-xl"><h3 class="text-xl font-bold mb-4">شاگردان شما</h3><div id="client-list" class="space-y-3">در حال بارگذاری...</div></div>`;
+            
+            const referralLink = `${window.location.origin}${window.location.pathname}?ref=${currentUserData.id}`;
+            const referralCardHTML = `
+                <div class="card p-4">
+                    <h3 class="text-lg font-bold">دعوت از مربیان دیگر</h3>
+                    <p class="text-sm text-[var(--text-color-muted)] mt-1">با این لینک مربیان دیگر را دعوت کنید و امتیاز بگیرید!</p>
+                    <div class="flex items-center gap-2 mt-4">
+                        <input type="text" id="referral-link-input" value="${referralLink}" class="w-full p-2 rounded-lg input-base text-sm" readonly>
+                        <button id="copy-referral-btn" class="p-2 btn-secondary rounded-lg">کپی</button>
+                    </div>
+                </div>
+            `;
+
+            view.innerHTML = `
+                ${referralCardHTML}
+                <div class="card p-4"><h3 class="text-lg font-bold">داشبورد مربی</h3><p class="text-sm text-[var(--text-color-muted)]">کد اتصال شما: <strong class="select-all">${currentUserData.trainer_code}</strong></p></div>
+                <div class="card p-6 rounded-xl"><h3 class="text-xl font-bold mb-4">شاگردان شما</h3><div id="client-list" class="space-y-3">در حال بارگذاری...</div></div>
+            `;
             showView('trainer-dashboard-view', 'داشبورد مربی');
             
             const clientListEl = document.getElementById('client-list');
