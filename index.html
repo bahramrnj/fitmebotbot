@@ -377,9 +377,9 @@
                 currentUserData = { ...currentUserData, ...data };
                 showToast('پروفایل با موفقیت به‌روز شد!', 'success');
                 await checkAndAwardChallenge('PROFILE_COMPLETE');
+                renderProfileView(); // Re-render profile to show new data and exit edit mode
             } catch (error) {
                 showToast(`خطا: ${error.message}`, 'error');
-            } finally {
                 saveButton.disabled = false;
                 saveButton.textContent = 'ذخیره تغییرات';
             }
