@@ -319,7 +319,7 @@
             
             const clientListEl = document.getElementById('client-list');
             try {
-                const { data: clients, error } = await db.from('profiles').select('id, name').eq('linked_trainer_id', currentUserData.id);
+                const { data: clients, error } = await db.from('profiles').select('id, name, workout_plans!client_id(plan_data)').eq('linked_trainer_id', currentUserData.id);
                 if (error) throw error;
                 
                 if (clients.length === 0) {
@@ -377,7 +377,7 @@
                 currentUserData = { ...currentUserData, ...data };
                 showToast('پروفایل با موفقیت به‌روز شد!', 'success');
                 await checkAndAwardChallenge('PROFILE_COMPLETE');
-                renderProfileView(); // Re-render profile to show new data and exit edit mode
+                renderProfileView();
             } catch (error) {
                 showToast(`خطا: ${error.message}`, 'error');
                 saveButton.disabled = false;
@@ -864,7 +864,13 @@
         // =================================================================
         function setupEventListeners() {
             dom.themeToggleButton.addEventListener('click', toggleTheme);
-            dom.logoutBtn.addEventListener('click', () => db.auth.signOut());
+            dom.logoutBtn.addEventListener('click', async () => {
+                const { error } = await db.auth.signOut();
+                if (error) {
+                    console.error('Error signing out:', error);
+                    showToast(`خطا در خروج از سیستم: ${error.message}`, 'error');
+                }
+            });
             dom.authActionBtn.addEventListener('click', handleAuthAction);
             dom.toggleAuthModeBtn.addEventListener('click', () => {
                 isRegisterMode = !isRegisterMode;
