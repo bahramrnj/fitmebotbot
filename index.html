@@ -7,6 +7,11 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Chart.js for graphs -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- jsPDF for PDF generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
     <!-- Persian Datepicker Files -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/persian-datepicker@1.2.0/dist/css/persian-datepicker.min.css"/>
@@ -102,6 +107,7 @@
             <div id="challenges-view" class="hidden space-y-6"></div>
             <div id="profile-view" class="hidden space-y-6"></div>
             <div id="rewards-view" class="hidden space-y-6"></div>
+            <div id="performance-view" class="hidden space-y-6"></div>
         </div>
 
     </div>
@@ -110,6 +116,10 @@
         <button data-view="profile-view" class="nav-btn flex flex-col items-center gap-1 transition-all w-20">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
             <span class="text-xs font-medium">پروفایل</span>
+        </button>
+        <button data-view="performance-view" class="nav-btn flex flex-col items-center gap-1 transition-all w-20">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+            <span class="text-xs font-medium">عملکرد</span>
         </button>
         <button data-view="home-view" class="nav-btn active flex flex-col items-center gap-1 transition-all w-20">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
@@ -182,6 +192,8 @@
         let currentEditingClient = null;
         let isRegisterMode = false;
         let referrerId = null;
+        let performanceChart = null; // To hold the chart instance
+        let trainerExerciseSuggestions = [];
         
         const sunIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>`;
         const moonIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>`;
@@ -262,18 +274,41 @@
                 workoutListEl.innerHTML = `<p class="text-center text-[var(--text-color-muted)] p-4">هنوز برنامه‌ای برای شما ثبت نشده است.</p>`;
                 return;
             }
+
             const today = new Intl.DateTimeFormat('fa-IR', { weekday: 'long' }).format(new Date());
             const todaysWorkout = plan.schedule[today] || [];
+            
             if (todaysWorkout.length === 0) {
                 workoutListEl.innerHTML = `<div class="text-center p-4 rounded-lg bg-[var(--success-bg)] text-[var(--success-color)]">امروز روز استراحت است!</div>`;
                 return;
             }
-            workoutListEl.innerHTML = todaysWorkout.map((ex, i) => `
-                <div class="card p-3 flex items-center justify-between transition ${ex.done ? 'opacity-50' : ''}">
-                    <div><p class="font-semibold">${ex.name}</p><p class="text-sm text-[var(--text-color-muted)]">${ex.sets} ست × ${ex.reps} تکرار</p></div>
-                    <input type="checkbox" data-day="${today}" data-index="${i}" class="exercise-checkbox w-6 h-6 rounded bg-gray-700 border-gray-600 text-[var(--accent-color)] focus:ring-[var(--accent-color)]" ${ex.done ? 'checked' : ''}>
-                </div>
-            `).join('');
+
+            // Fetch logs for today to pre-fill weights
+            const todayISO = new Date().toISOString().split('T')[0];
+            const { data: todayLogs, error } = await db.from('workout_logs')
+                .select('exercise_name, weight')
+                .eq('user_id', currentUserData.id)
+                .eq('performed_at', todayISO);
+            
+            const weightMap = new Map((todayLogs || []).map(log => [log.exercise_name, log.weight]));
+            
+            workoutListEl.innerHTML = todaysWorkout.map((ex, i) => {
+                const weight = weightMap.get(ex.name) || '';
+                return `
+                <div class="card p-4 space-y-2">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="font-semibold">${ex.name}</p>
+                            <p class="text-sm text-[var(--text-color-muted)]">${ex.sets} ست × ${ex.reps} تکرار</p>
+                        </div>
+                        <input type="checkbox" data-exercise-name="${ex.name}" data-sets="${ex.sets}" data-reps="${ex.reps}" class="exercise-checkbox w-6 h-6 rounded bg-gray-700 border-gray-600 text-[var(--accent-color)] focus:ring-[var(--accent-color)]" ${ex.done ? 'checked' : ''}>
+                    </div>
+                    <div class="flex items-center gap-2">
+                         <label for="weight-input-${i}" class="text-sm text-[var(--text-color-muted)]">وزنه (kg):</label>
+                         <input type="number" id="weight-input-${i}" data-exercise-name="${ex.name}" value="${weight}" class="weight-input w-full p-2 rounded-lg input-base text-center" placeholder="--">
+                    </div>
+                </div>`
+            }).join('');
         }
 
         function renderClientDashboard() {
@@ -316,6 +351,12 @@
 
             view.innerHTML = `
                 ${customerClubBannerHTML}
+                <div class="flex justify-end mb-4">
+                     <button id="print-daily-plan-btn" class="btn-secondary text-sm py-2 px-4 rounded-lg flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                        چاپ برنامه امروز
+                    </button>
+                </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div class="card p-4 rounded-xl text-center"><p class="text-4xl font-bold text-[var(--accent-color)]">${streak}</p><p class="text-sm text-[var(--text-color-muted)] mt-1">🔥 زنجیره روزانه</p></div>
                     <div class="card p-4 rounded-xl text-center"><p class="text-4xl font-bold text-[var(--accent-color)]">${sessionsLeft >= 0 ? sessionsLeft : '-'}</p><p class="text-sm text-[var(--text-color-muted)] mt-1">📅 جلسات باقی‌مانده</p></div>
@@ -876,26 +917,56 @@
 
         async function toggleExerciseStatus(e) {
             const checkbox = e.target;
-            const { day, index } = checkbox.dataset;
             const isChecked = checkbox.checked;
+            const exerciseCard = checkbox.closest('.card');
+            const weightInput = exerciseCard.querySelector('.weight-input');
+            
+            const exerciseDetails = {
+                user_id: currentUserData.id,
+                performed_at: new Date().toISOString().split('T')[0],
+                exercise_name: checkbox.dataset.exerciseName,
+                sets: checkbox.dataset.sets,
+                reps: checkbox.dataset.reps,
+                weight: parseFloat(weightInput.value) || null
+            };
 
             try {
+                if (isChecked) {
+                    // Log the workout
+                    const { error } = await db.from('workout_logs').upsert(exerciseDetails, {
+                        onConflict: 'user_id,performed_at,exercise_name'
+                    });
+                    if (error) throw error;
+                } else {
+                    // Remove the log if unchecked
+                    const { error } = await db.from('workout_logs')
+                        .delete()
+                        .match({ 
+                            user_id: exerciseDetails.user_id, 
+                            performed_at: exerciseDetails.performed_at,
+                            exercise_name: exerciseDetails.exercise_name
+                        });
+                    if (error) throw error;
+                }
+
+                // Update the plan in user's local data
                 if (!currentUserData.plan?.[0]?.plan_data) throw new Error("برنامه ورزشی یافت نشد.");
-                const exercise = currentUserData.plan[0].plan_data.schedule[day][parseInt(index)];
-                exercise.done = isChecked;
-                checkbox.closest('.card').classList.toggle('opacity-50', isChecked);
-
-                const { error } = await db.from('workout_plans').update({ plan_data: currentUserData.plan[0].plan_data }).eq('client_id', currentUserData.id);
-                if (error) throw error;
-
-                const allDone = currentUserData.plan[0].plan_data.schedule[day].every(ex => ex.done);
+                const today = new Intl.DateTimeFormat('fa-IR', { weekday: 'long' }).format(new Date());
+                const exerciseIndex = currentUserData.plan[0].plan_data.schedule[today].findIndex(ex => ex.name === exerciseDetails.exercise_name);
+                if (exerciseIndex > -1) {
+                    currentUserData.plan[0].plan_data.schedule[today][exerciseIndex].done = isChecked;
+                }
+                
+                exerciseCard.classList.toggle('opacity-50', isChecked);
+                
+                // Finally, check if the whole day is complete to update streak
+                const allDone = currentUserData.plan[0].plan_data.schedule[today].every(ex => ex.done);
                 if (allDone) await updateSessionAndStreak();
+
             } catch (error) {
                 showToast(`خطا در ذخیره وضعیت تمرین: ${error.message}`, 'error');
-                const exercise = currentUserData.plan[0].plan_data.schedule[day][parseInt(index)];
-                exercise.done = !isChecked;
-                checkbox.checked = !isChecked;
-                checkbox.closest('.card').classList.toggle('opacity-50', !isChecked);
+                checkbox.checked = !isChecked; // Revert checkbox on error
+                exerciseCard.classList.toggle('opacity-50', !isChecked);
             }
         }
         
@@ -1045,6 +1116,10 @@
                         break;
                     case 'challenges-view':
                         renderChallengesView();
+                        break;
+                    case 'performance-view':
+                        // Will implement this soon
+                        showView('performance-view', 'گزارش عملکرد');
                         break;
                 }
             });
