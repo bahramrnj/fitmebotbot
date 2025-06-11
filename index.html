@@ -2,16 +2,15 @@
 <html lang="fa" dir="rtl" data-theme="dark">
 <head>
     <meta charset="UTF-8">
-    <!-- ** CORRECTED: Added viewport-fit=cover to respect safe areas ** -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
-    <title>FitPlan - برنامه ورزشی شما</title>
+    <title>Vigiro - برنامه ورزشی شما</title>
 
     <!-- PWA & Add to Home Screen -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#D32F2F">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <link rel="apple-touch-icon" href="https://placehold.co/180x180/D32F2F/ffffff?text=FP">
+    <link rel="apple-touch-icon" href="https://placehold.co/180x180/D32F2F/ffffff?text=V">
 
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Fonts -->
@@ -71,11 +70,10 @@
             transition: background-color 0.3s, color 0.3s; 
             background-image: radial-gradient(var(--card-border) 1px, transparent 1px); 
             background-size: 20px 20px;
-            /* ** CORRECTED: Added safe area padding to the body ** */
             padding-top: env(safe-area-inset-top);
             padding-left: env(safe-area-inset-left);
             padding-right: env(safe-area-inset-right);
-            padding-bottom: calc(6rem + env(safe-area-inset-bottom)); /* 6rem is for nav bar height */
+            padding-bottom: calc(6rem + env(safe-area-inset-bottom));
         }
         h1, h2, h3, h4, h5, h6, #view-title { font-family: 'Montserrat', 'Vazirmatn', sans-serif; }
         .font-mono { font-family: 'Roboto Mono', monospace; }
@@ -98,7 +96,6 @@
             -webkit-backdrop-filter: blur(16px); 
             border-top: 1px solid var(--card-border); 
             z-index: 50; 
-            /* ** CORRECTED: Adjusted nav bar height and padding for safe area ** */
             height: calc(5rem + env(safe-area-inset-bottom));
             padding-bottom: env(safe-area-inset-bottom);
         }
@@ -135,7 +132,7 @@
 
         <div id="auth-view" class="hidden flex-grow flex flex-col justify-center">
              <div class="text-center mb-8">
-                 <h1 class="text-4xl font-bold">به FitPlan خوش آمدید</h1>
+                 <h1 class="text-4xl font-bold">به Vigiro خوش آمدید</h1>
                  <p class="text-[var(--text-color-muted)] mt-2">برنامه ورزشی خود را حرفه‌ای مدیریت کنید</p>
              </div>
              <div class="card p-8 rounded-xl shadow-lg">
@@ -196,22 +193,24 @@
 
     <div id="plan-modal" class="hidden fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-50 p-4">
         <form id="plan-form" class="card rounded-xl p-6 w-full max-w-lg space-y-4 flex flex-col max-h-[90vh]">
-            <div id="plan-modal-title" class="text-xl font-bold border-b border-[var(--card-border)] pb-3 flex-shrink-0">ایجاد / ویرایش برنامه</div>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 flex-shrink-0">
+            <div id="plan-modal-title" class="text-xl font-bold border-b border-[var(--card-border)] pb-3 mb-4 flex-shrink-0">ایجاد / ویرایش برنامه</div>
+            <div class="grid grid-cols-2 gap-4 flex-shrink-0">
                 <div>
                     <label class="text-sm text-[var(--text-color-muted)]" for="plan-total-sessions">کل جلسات</label>
                     <input type="number" id="plan-total-sessions" class="w-full mt-1 p-3 rounded-lg input-base">
                 </div>
                 <div>
-                    <label class="text-sm text-[var(--text-color-muted)]" for="plan-start-date">تاریخ شروع</label>
-                    <input type="text" id="plan-start-date" class="w-full mt-1 p-3 rounded-lg input-base text-center" readonly>
-                </div>
-                <div>
-                    <label class="text-sm text-[var(--text-color-muted)]" for="plan-end-date">تاریخ پایان</label>
-                    <input type="text" id="plan-end-date" class="w-full mt-1 p-3 rounded-lg input-base text-center" readonly>
+                    <label class="text-sm text-[var(--text-color-muted)]" for="plan-duration">مدت اعتبار برنامه</label>
+                    <select id="plan-duration" class="w-full mt-1 p-3 rounded-lg input-base">
+                        <option value="1">۱ ماهه</option>
+                        <option value="3">۳ ماهه</option>
+                        <option value="6">۶ ماهه</option>
+                        <option value="12">۱ ساله</option>
+                        <option value="99">بدون پایان</option>
+                    </select>
                 </div>
             </div>
-            <div id="plan-weekly-schedule" class="flex-grow overflow-y-auto space-y-4 p-2 border-t border-b border-[var(--card-border)]"></div>
+            <div id="plan-weekly-schedule" class="flex-grow overflow-y-auto space-y-4 p-2 border-t border-b border-[var(--card-border)] mt-4"></div>
             <div class="flex gap-4 flex-shrink-0 pt-4 border-t border-[var(--card-border)]">
                 <button id="cancel-plan-btn" type="button" class="w-1/2 btn-secondary font-bold py-2 rounded-lg">لغو</button>
                 <button id="save-plan-btn" type="submit" class="w-1/2 btn-primary font-bold py-2 rounded-lg">ذخیره برنامه</button>
@@ -516,7 +515,7 @@
                         <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 12 20 22 4 22 4 12"></polyline><rect x="2" y="7" width="20" height="5"></rect><line x1="12" y1="22" x2="12" y2="7"></line><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"></path><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"></path></svg>
                     </div>
                     <div class="flex-grow">
-                        <h3 class="font-bold text-lg text-white">باشگاه مشتریان FitPlan</h3>
+                        <h3 class="font-bold text-lg text-white">باشگاه مشتریان Vigiro</h3>
                         <p class="text-sm text-white opacity-90">با تکمیل تمرینات، جوایز ویژه کسب کنید!</p>
                     </div>
                     <div class="text-white">
@@ -549,7 +548,7 @@
             const trainerClubBannerHTML = `
                 <div id="customer-club-banner" class="card bg-gradient-to-l from-violet-500 via-purple-500 to-fuchsia-500 p-4 rounded-xl flex items-center gap-4 cursor-pointer hover:scale-105 transition-transform">
                     <div class="text-white"><svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"></path><circle cx="12" cy="10" r="3"></circle></svg></div>
-                    <div class="flex-grow"><h3 class="font-bold text-lg text-white">باشگاه مربیان FitPlan</h3><p class="text-sm text-white opacity-90">با فعالیت در برنامه، امتیاز و جایزه بگیرید!</p></div>
+                    <div class="flex-grow"><h3 class="font-bold text-lg text-white">باشگاه مربیان Vigiro</h3><p class="text-sm text-white opacity-90">با فعالیت در برنامه، امتیاز و جایزه بگیرید!</p></div>
                     <div class="text-white"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></div>
                 </div>
             `;
@@ -815,7 +814,7 @@
         async function renderPerformanceView(targetUserId = null, targetUserName = null) {
             const view = document.getElementById('performance-view');
             showView('performance-view', targetUserName ? `گزارش عملکرد ${targetUserName}` : 'گزارش عملکرد');
-            view.innerHTML = `<div class="card p-6"><div class="spinner mx-auto"></div><p class="text-center mt-2">در حال بارگذاری گزارش...</p></div>`;
+            view.innerHTML = `<div class="card p-6"><div class="heartbeat-spinner mx-auto"></div><p class="text-center mt-2">در حال بارگذاری گزارش...</p></div>`;
 
             const userIdToFetch = targetUserId || currentUserData.id;
             const userName = targetUserName || currentUserData.name;
@@ -1170,10 +1169,18 @@
                     })).filter(ex => ex.name);
                 });
 
+                const durationMonths = parseInt(document.getElementById('plan-duration').value);
+                const startDate = new Date();
+                let endDate = null;
+                if (durationMonths !== 99) { // 99 is for "no end"
+                    endDate = new Date(startDate);
+                    endDate.setMonth(endDate.getMonth() + durationMonths);
+                }
+
                 const planData = {
                     totalSessions: parseInt(document.getElementById('plan-total-sessions').value) || 0,
-                    startDate: $('#plan-start-date').val().replaceAll('/', '-'),
-                    endDate: $('#plan-end-date').val().replaceAll('/', '-'),
+                    startDate: startDate.toISOString().split('T')[0],
+                    endDate: endDate ? endDate.toISOString().split('T')[0] : null,
                     attendedSessions: existingPlan?.plan_data?.attendedSessions || 0,
                     attendedDates: existingPlan?.plan_data?.attendedDates || [],
                     schedule
