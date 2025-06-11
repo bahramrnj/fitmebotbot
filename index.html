@@ -1189,7 +1189,6 @@
                 exerciseCard.classList.toggle('opacity-50', !isChecked);
             }
         }
-
         
         async function checkAndAwardChallenge(type, value = null) {
             try {
@@ -1296,6 +1295,15 @@
             }
             currentUserData = profileData;
             showScreen('main');
+            
+            // Adjust Nav Bar based on Role
+            const performanceNavBtn = document.querySelector('button[data-view="performance-view"]');
+            if (currentUserData.role === 'trainer') {
+                performanceNavBtn.classList.add('hidden');
+            } else {
+                performanceNavBtn.classList.remove('hidden');
+            }
+
             if (currentUserData.role === 'trainer') renderTrainerDashboard();
             else renderClientDashboard();
         }
