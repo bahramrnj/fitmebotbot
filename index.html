@@ -25,11 +25,9 @@
     <!-- jsPDF for PDF generation -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
-    <!-- Persian Datepicker Files -->
+    <!-- jQuery and Persian Date (for age calculation) -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <link rel="stylesheet" href="https://unpkg.com/persian-datepicker@1.2.0/dist/css/persian-datepicker.min.css"/>
     <script src="https://unpkg.com/persian-date@1.1.0/dist/persian-date.min.js"></script>
-    <script src="https://unpkg.com/persian-datepicker@1.2.0/dist/js/persian-datepicker.min.js"></script>
     
     <style>
         :root[data-theme="dark"] {
@@ -111,12 +109,6 @@
         details[open] summary .accordion-icon { transform: rotate(90deg); }
         .heartbeat-spinner { width: 50px; height: 50px; position: relative; background: var(--accent-color); mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23000'%3E%3Cpath d='M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z'/%3E%3C/svg%3E") no-repeat center; mask-size: contain; -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23000'%3E%3Cpath d='M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z'/%3E%3C/svg%3E") no-repeat center; -webkit-mask-size: contain; animation: heartbeat 1.5s ease-in-out infinite; }
         @keyframes heartbeat { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.2); } }
-        /* Persian Datepicker Dark Theme */
-        .pwt-btn-today, .pwt-btn-switch, .pwt-btn-close { color: var(--text-color) !important; }
-        .datepicker-plot-area { background-color: var(--card-bg) !important; border: 1px solid var(--card-border) !important; }
-        .datepicker-plot-area .datepicker-calendar .day.today, .datepicker-plot-area .datepicker-calendar .day.selected { background-color: var(--accent-color) !important; color: var(--accent-text-color) !important;}
-        .datepicker-plot-area .datepicker-calendar .month-grid .header .month-name, .datepicker-plot-area .datepicker-calendar .month-grid .header .year-name, .datepicker-plot-area .datepicker-calendar .day-names .day-name, .datepicker-plot-area .datepicker-navigator .pwt-btn-next, .datepicker-plot-area .datepicker-navigator .pwt-btn-prev { color: var(--text-color) !important; }
-        .datepicker-plot-area .datepicker-calendar .day:hover { background-color: var(--input-bg) !important; }
         /* Image Viewer Modal Styles */
         #close-image-viewer { line-height: 1; }
     </style>
@@ -668,7 +660,7 @@
 
             const profileAvatarContainer = document.getElementById('profile-avatar-container');
             const oldHTML = profileAvatarContainer.innerHTML;
-            profileAvatarContainer.innerHTML = `<div class="w-32 h-32 flex items-center justify-center"><div class="spinner"></div></div>`;
+            profileAvatarContainer.innerHTML = `<div class="w-32 h-32 flex items-center justify-center"><div class="heartbeat-spinner"></div></div>`;
 
             try {
                 const userId = currentUserData.id;
@@ -785,7 +777,7 @@
                         <div class="grid grid-cols-3 gap-4">
                             <div><label for="profile-height" class="text-sm text-[var(--text-color-muted)]">قد (cm)</label><input type="number" id="profile-height" value="${profile.height || ''}" class="w-full mt-1 p-2 rounded-lg input-base"></div>
                             <div><label for="profile-weight" class="text-sm text-[var(--text-color-muted)]">وزن (kg)</label><input type="number" id="profile-weight" value="${profile.weight || ''}" class="w-full mt-1 p-2 rounded-lg input-base"></div>
-                            <div><label for="profile-birthdate" class="text-sm text-[var(--text-color-muted)]">تاریخ تولد</label><input type="text" id="profile-birthdate" value="${profile.birth_date || ''}" class="w-full mt-1 p-2 rounded-lg input-base text-center" readonly></div>
+                            <div><label for="profile-birthdate" class="text-sm text-[var(--text-color-muted)]">تاریخ تولد</label><input type="text" id="profile-birthdate" value="${profile.birth_date || ''}" class="w-full mt-1 p-2 rounded-lg input-base text-center" dir="ltr" placeholder="1370/01/01"></div>
                         </div>
                         ${isClient ? `<div><hr class="border-[var(--input-border)] my-2"><label for="trainer-code" class="text-sm text-[var(--text-color-muted)]">کد اتصال مربی</label><input type="text" id="trainer-code" placeholder="کدی که از مربی گرفته‌اید" class="w-full mt-1 p-2 rounded-lg input-base"></div>` : ''}
                         
@@ -798,15 +790,6 @@
                 ${trainerInfoHTML}
                 ${trainerSectionsHTML}
             `;
-            
-            // Initialize datepicker for the new field
-            $('#profile-birthdate').persianDatepicker({
-                format: 'YYYY/MM/DD',
-                autoClose: true,
-                calendar: { persian: { locale: 'fa' } },
-                toolbox: { enabled: false },
-                initialValue: !!profile.birth_date // Set initial value only if it exists
-            });
 
             showView('profile-view', 'پروفایل');
         }
@@ -1113,26 +1096,9 @@
 
             const { data: plan } = await db.from('workout_plans').select('*').eq('client_id', client.id).single();
             
-            const startDateEl = $('#plan-start-date');
-            const endDateEl = $('#plan-end-date');
-            
-            const datePickerOptions = {
-                format: 'YYYY/MM/DD',
-                autoClose: true,
-                calendar: {
-                    persian: { locale: 'fa' }
-                },
-                toolbox: { enabled: false }
-            };
-
-            startDateEl.persianDatepicker(datePickerOptions);
-            endDateEl.persianDatepicker(datePickerOptions);
-
             if (plan?.plan_data) {
                 const { plan_data: planData } = plan;
                 document.getElementById('plan-total-sessions').value = planData.totalSessions || '';
-                if(planData.startDate) startDateEl.val(planData.startDate);
-                if(planData.endDate) endDateEl.val(planData.endDate);
                 
                 Object.keys(planData.schedule || {}).forEach(day => {
                     const dayContainer = scheduleContainer.querySelector(`div[data-day="${day}"]`);
