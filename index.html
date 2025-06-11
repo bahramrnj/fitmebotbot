@@ -196,6 +196,8 @@
         let referrerId = null;
         let performanceChart = null; // To hold the chart instance
         let trainerExerciseSuggestions = [];
+        // Base64 for Vazirmatn font to support Persian in jsPDF
+        const vazirmatnFontBase64 = 'AAEAAAARAQAABAAQR0RFRg...'; // This is a placeholder for the actual very long base64 string
         
         const sunIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>`;
         const moonIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>`;
@@ -266,6 +268,77 @@
                 console.error("Could not calculate age from date:", persianDateString, e);
                 return null;
             }
+        }
+
+        // Helper for reversing Persian text for jsPDF
+        const reverseText = (text) => text.split('').reverse().join('');
+
+        async function generatePerformanceReportPDF(logs, userName) {
+            const doc = new jsPDF();
+            // This is a placeholder for a real Base64 font. In a real app, this would be a very long string.
+            // For now, it will use a standard font, which won't render Persian correctly.
+            // doc.addFileToVFS('Vazirmatn-Regular.ttf', vazirmatnFontBase64);
+            // doc.addFont('Vazirmatn-Regular.ttf', 'Vazirmatn', 'normal');
+            // doc.setFont('Vazirmatn');
+
+            doc.text(reverseText(`گزارش عملکرد برای: ${userName}`), 105, 15, { align: 'center' });
+            
+            const tableColumn = ["وزنه (kg)", "حرکت", "تاریخ"];
+            const tableRows = [];
+
+            logs.forEach(log => {
+                const logData = [
+                    log.weight || '-',
+                    reverseText(log.exercise_name),
+                    new Date(log.performed_at).toLocaleDateString('fa-IR'),
+                ];
+                tableRows.push(logData);
+            });
+
+            doc.autoTable({
+                head: [tableColumn],
+                body: tableRows,
+                startY: 20,
+                headStyles: { halign: 'center', font: 'Vazirmatn' },
+                bodyStyles: { halign: 'center', font: 'Vazirmatn' }
+            });
+
+            doc.save(`report_${userName}.pdf`);
+        }
+
+        async function generateDailyPlanPDF() {
+            const today = new Intl.DateTimeFormat('fa-IR', { weekday: 'long' }).format(new Date());
+            const plan = currentUserData.plan?.[0]?.plan_data;
+            if (!plan || !plan.schedule || !plan.schedule[today]) {
+                showToast("برنامه ای برای امروز وجود ندارد.", "info");
+                return;
+            }
+
+            const todaysWorkout = plan.schedule[today];
+
+            const doc = new jsPDF();
+            // doc.addFileToVFS('Vazirmatn-Regular.ttf', vazirmatnFontBase64);
+            // doc.addFont('Vazirmatn-Regular.ttf', 'Vazirmatn', 'normal');
+            // doc.setFont('Vazirmatn');
+
+            doc.text(reverseText(`برنامه تمرین امروز - ${today}`), 105, 15, { align: 'center' });
+
+            const tableColumn = ["تکرار", "ست", "حرکت"];
+            const tableRows = todaysWorkout.map(ex => [
+                ex.reps,
+                ex.sets,
+                reverseText(ex.name)
+            ]);
+
+            doc.autoTable({
+                head: [tableColumn],
+                body: tableRows,
+                startY: 20,
+                headStyles: { halign: 'center', font: 'Vazirmatn' },
+                bodyStyles: { halign: 'center', font: 'Vazirmatn' }
+            });
+
+            doc.save(`plan_${new Date().toISOString().split('T')[0]}.pdf`);
         }
 
         async function renderDailyWorkout() {
@@ -382,7 +455,7 @@
 
             const goldenChallengeBannerHTML = `
                 <div class="card p-4 rounded-xl border-amber-400/50">
-                    <h3 class="text-lg font-bold text-amber-400">� چالش طلایی ماه!</h3>
+                    <h3 class="text-lg font-bold text-amber-400">🏆 چالش طلایی ماه!</h3>
                     <p class="text-sm text-[var(--text-color-muted)] mt-1">این ماه، به ۵ مربی برتر که بیشترین شاگرد فعال را داشته باشند، جوایز نقدی اهدا می‌شود!</p>
                 </div>
             `;
@@ -643,6 +716,7 @@
             view.innerHTML = `<div class="card p-6"><div class="spinner mx-auto"></div><p class="text-center mt-2">در حال بارگذاری گزارش...</p></div>`;
 
             const userIdToFetch = targetUserId || currentUserData.id;
+            const userName = targetUserName || currentUserData.name;
             
             const { data: logs, error } = await db.from('workout_logs')
                 .select('*')
@@ -701,6 +775,8 @@
                     </div>
                 </div>
             `;
+            
+            document.getElementById('download-report-pdf').addEventListener('click', () => generatePerformanceReportPDF(logs, userName));
             
             const chartCtx = document.getElementById('performance-chart').getContext('2d');
             
@@ -1271,6 +1347,9 @@
                 if (target.id === 'close-image-viewer' || target.id === 'image-viewer-modal') {
                     dom.imageViewerModal.classList.add('hidden');
                 }
+                if (target.id === 'print-daily-plan-btn') {
+                    generateDailyPlanPDF();
+                }
             });
 
             document.body.addEventListener('change', e => {
@@ -1325,4 +1404,3 @@
     </script>
 </body>
 </html>
-�
