@@ -52,6 +52,8 @@
         .datepicker-plot-area .datepicker-calendar .day.today, .datepicker-plot-area .datepicker-calendar .day.selected { background-color: var(--accent-color) !important; color: var(--accent-text-color) !important;}
         .datepicker-plot-area .datepicker-calendar .month-grid .header .month-name, .datepicker-plot-area .datepicker-calendar .month-grid .header .year-name, .datepicker-plot-area .datepicker-calendar .day-names .day-name, .datepicker-plot-area .datepicker-navigator .pwt-btn-next, .datepicker-plot-area .datepicker-navigator .pwt-btn-prev { color: var(--text-color) !important; }
         .datepicker-plot-area .datepicker-calendar .day:hover { background-color: var(--input-bg) !important; }
+        /* Image Viewer Modal Styles */
+        #close-image-viewer { line-height: 1; }
     </style>
 </head>
 <body class="antialiased">
@@ -144,6 +146,12 @@
         </form>
     </div>
 
+    <!-- Image Viewer Modal -->
+    <div id="image-viewer-modal" class="hidden fixed inset-0 bg-black bg-opacity-80 flex justify-center items-center z-[100] p-4 cursor-pointer">
+        <button id="close-image-viewer" class="absolute top-4 right-6 text-white text-4xl font-bold">&times;</button>
+        <img id="large-avatar-img" src="" alt="عکس پروفایل در اندازه بزرگ" class="max-w-full max-h-full object-contain rounded-lg">
+    </div>
+
     <div id="toast-notification" class="toast"></div>
 
     <script type="module">
@@ -164,7 +172,10 @@
             roleSelect: document.getElementById('role-select'), registerFields: document.getElementById('register-fields'),
             authActionBtn: document.getElementById('auth-action-btn'), toggleAuthModeBtn: document.getElementById('toggle-auth-mode-btn'),
             authTitle: document.getElementById('auth-title'), authPromptText: document.getElementById('auth-prompt-text'),
-            logoutBtn: document.getElementById('logout-btn')
+            logoutBtn: document.getElementById('logout-btn'),
+            imageViewerModal: document.getElementById('image-viewer-modal'),
+            largeAvatarImg: document.getElementById('large-avatar-img'),
+            closeImageViewerBtn: document.getElementById('close-image-viewer')
         };
 
         let currentUserData = null;
@@ -221,6 +232,26 @@
             Object.values(screens).forEach(s => s.classList.add('hidden'));
             if(screens[screen]) screens[screen].classList.remove('hidden');
             dom.navBar.classList.toggle('hidden', screen !== 'main');
+        }
+
+        function calculateAge(persianDateString) {
+            if (!persianDateString || !persianDateString.includes('/')) return null;
+            const parts = persianDateString.split('/').map(Number);
+            if (parts.length !== 3 || parts.some(isNaN)) return null;
+            
+            try {
+                const birthDate = new persianDate(parts).toGregorian();
+                const today = new Date();
+                let age = today.getFullYear() - birthDate.getFullYear();
+                const m = today.getMonth() - birthDate.getMonth();
+                if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+                    age--;
+                }
+                return age;
+            } catch(e) {
+                console.error("Could not calculate age from date:", persianDateString, e);
+                return null;
+            }
         }
 
         async function renderDailyWorkout() {
@@ -322,7 +353,7 @@
             
             const clientListEl = document.getElementById('client-list');
             try {
-                const { data: clients, error } = await db.from('profiles').select('id, name, avatar_url').eq('linked_trainer_id', currentUserData.id);
+                const { data: clients, error } = await db.from('profiles').select('id, name, avatar_url, profile_data').eq('linked_trainer_id', currentUserData.id);
                 if (error) throw error;
                 
                 if (clients.length === 0) {
@@ -338,6 +369,7 @@
                 clientListEl.innerHTML = '';
                 clients.forEach(client => {
                     const plan = planMap.get(client.id);
+                    const age = calculateAge(client.profile_data?.birth_date);
                     const sessionsLeft = plan ? (plan.totalSessions || 0) - (plan.attendedSessions || 0) : '-';
                     const avatarUrl = client.avatar_url || `https://placehold.co/40x40/161b22/e6edf3?text=${(client.name || 'U').charAt(0)}`;
 
@@ -346,7 +378,10 @@
                     clientCard.innerHTML = `
                         <div class="flex items-center gap-4">
                             <img src="${avatarUrl}" alt="[عکس پروفایل ${client.name}]" class="w-10 h-10 rounded-full object-cover">
-                            <p class="font-bold">${client.name}</p>
+                            <div>
+                                <p class="font-bold">${client.name}</p>
+                                ${age ? `<p class="text-xs text-[var(--text-color-muted)]">${age} ساله</p>` : ''}
+                            </div>
                         </div>
                         <span class="text-sm text-[var(--text-color-muted)]">جلسات باقی‌مانده: <span class="font-bold text-[var(--text-color)]">${sessionsLeft >= 0 ? sessionsLeft : '-'}</span></span>
                     `;
@@ -369,7 +404,7 @@
                     profile_data: {
                         height: document.getElementById('profile-height').value || null,
                         weight: document.getElementById('profile-weight').value || null,
-                        age: document.getElementById('profile-age').value || null,
+                        birth_date: document.getElementById('profile-birthdate').value || null,
                     }
                 };
                 if (currentUserData.role === 'client') {
@@ -505,7 +540,7 @@
                         <div class="grid grid-cols-3 gap-4">
                             <div><label for="profile-height" class="text-sm text-[var(--text-color-muted)]">قد (cm)</label><input type="number" id="profile-height" value="${profile.height || ''}" class="w-full mt-1 p-2 rounded-lg input-base"></div>
                             <div><label for="profile-weight" class="text-sm text-[var(--text-color-muted)]">وزن (kg)</label><input type="number" id="profile-weight" value="${profile.weight || ''}" class="w-full mt-1 p-2 rounded-lg input-base"></div>
-                            <div><label for="profile-age" class="text-sm text-[var(--text-color-muted)]">سن</label><input type="number" id="profile-age" value="${profile.age || ''}" class="w-full mt-1 p-2 rounded-lg input-base"></div>
+                            <div><label for="profile-birthdate" class="text-sm text-[var(--text-color-muted)]">تاریخ تولد</label><input type="text" id="profile-birthdate" value="${profile.birth_date || ''}" class="w-full mt-1 p-2 rounded-lg input-base text-center" readonly></div>
                         </div>
                         ${isClient ? `<div><hr class="border-[var(--input-border)] my-2"><label for="trainer-code" class="text-sm text-[var(--text-color-muted)]">کد اتصال مربی</label><input type="text" id="trainer-code" placeholder="کدی که از مربی گرفته‌اید" class="w-full mt-1 p-2 rounded-lg input-base"></div>` : ''}
                         
@@ -516,6 +551,15 @@
                 </div>
                 ${trainerSectionsHTML}
             `;
+            
+            // Initialize datepicker for the new field
+            $('#profile-birthdate').persianDatepicker({
+                format: 'YYYY/MM/DD',
+                autoClose: true,
+                calendar: { persian: { locale: 'fa' } },
+                toolbox: { enabled: false }
+            });
+
             showView('profile-view', 'پروفایل');
         }
 
@@ -662,10 +706,13 @@
             form.reset();
             
             const avatarUrl = client.avatar_url || `https://placehold.co/64x64/161b22/e6edf3?text=${encodeURIComponent((client.name || 'U').charAt(0))}`;
+            const age = calculateAge(client.profile_data?.birth_date);
+            const ageText = age ? `(${age} ساله)` : '';
+
             document.getElementById('plan-modal-title').innerHTML = `
                  <div class="flex items-center gap-4">
-                    <img src="${avatarUrl}" alt="[عکس پروفایل ${client.name}]" class="w-12 h-12 rounded-full object-cover">
-                    <span>برنامه ورزشی برای ${client.name}</span>
+                    <img id="modal-avatar-thumbnail" src="${avatarUrl}" alt="[عکس پروفایل ${client.name}]" class="w-12 h-12 rounded-full object-cover cursor-pointer hover:scale-110 transition-transform">
+                    <span>برنامه ورزشی برای ${client.name} ${ageText}</span>
                 </div>
             `;
 
@@ -838,7 +885,7 @@
                 let isCompleted = false;
                 if (type === 'PROFILE_COMPLETE') {
                     const pd = currentUserData.profile_data;
-                    isCompleted = pd && pd.height && pd.weight && pd.age;
+                    isCompleted = pd && pd.height && pd.weight && pd.birth_date;
                 } else if (type === 'STREAK_X' && value >= challenge.challenge_value) {
                     isCompleted = true;
                 } else if (type === 'FIRST_WORKOUT') {
@@ -980,6 +1027,13 @@
                     const rewardId = target.dataset.rewardId;
                     const requiredPoints = parseInt(target.dataset.requiredPoints);
                     unlockVoucher(rewardId, requiredPoints);
+                }
+                if (target.id === 'modal-avatar-thumbnail') {
+                    dom.largeAvatarImg.src = target.src;
+                    dom.imageViewerModal.classList.remove('hidden');
+                }
+                if (target.id === 'close-image-viewer' || target.id === 'image-viewer-modal') {
+                    dom.imageViewerModal.classList.add('hidden');
                 }
             });
 
