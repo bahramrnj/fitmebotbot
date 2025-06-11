@@ -505,6 +505,26 @@
             
             const avatarUrl = currentUserData.avatar_url || `https://placehold.co/128x128/161b22/e6edf3?text=${encodeURIComponent((currentUserData.name || 'U').charAt(0))}`;
 
+            let trainerInfoHTML = '';
+            if (isClient && currentUserData.trainer_info) {
+                const trainer = currentUserData.trainer_info;
+                const trainerAvatar = trainer.avatar_url || `https://placehold.co/64x64/161b22/e6edf3?text=${encodeURIComponent((trainer.name || 'M').charAt(0))}`;
+                const trainerAge = calculateAge(trainer.profile_data?.birth_date);
+                const trainerAgeText = trainerAge ? `${trainerAge} ساله` : '';
+                trainerInfoHTML = `
+                    <div class="card p-4">
+                        <h3 class="text-lg font-bold mb-3">مربی شما</h3>
+                        <div class="flex items-center gap-4">
+                            <img src="${trainerAvatar}" alt="عکس مربی" class="w-16 h-16 rounded-full object-cover">
+                            <div>
+                                <p class="font-bold text-lg">${trainer.name}</p>
+                                ${trainerAgeText ? `<p class="text-sm text-[var(--text-color-muted)]">${trainerAgeText}</p>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
             let trainerSectionsHTML = '';
             if (isTrainer) {
                 const referralLink = `${window.location.origin}${window.location.pathname}?ref=${currentUserData.id}`;
@@ -554,6 +574,7 @@
                         </div>
                     </div>
                 </div>
+                ${trainerInfoHTML}
                 ${trainerSectionsHTML}
             `;
             
@@ -562,7 +583,8 @@
                 format: 'YYYY/MM/DD',
                 autoClose: true,
                 calendar: { persian: { locale: 'fa' } },
-                toolbox: { enabled: false }
+                toolbox: { enabled: false },
+                initialValue: !!profile.birth_date // Set initial value only if it exists
             });
 
             showView('profile-view', 'پروفایل');
@@ -952,6 +974,17 @@
                 const { data, error } = await db.from('profiles').select('*').eq('id', user.id).single();
                 if (data) { 
                     profileData = data; 
+                    if(profileData.role === 'client' && profileData.linked_trainer_id) {
+                        const { data: trainerData, error: trainerError } = await db.from('profiles')
+                            .select('name, avatar_url, profile_data')
+                            .eq('id', profileData.linked_trainer_id)
+                            .single();
+                        if (trainerError) {
+                            console.error("Error fetching trainer data:", trainerError);
+                        } else {
+                            profileData.trainer_info = trainerData;
+                        }
+                    }
                     if(profileData.role === 'client') {
                         const { data: planData, error: planError } = await db.from('workout_plans').select('plan_data').eq('client_id', user.id);
                         if(planError) console.error("Could not fetch plan:", planError);
