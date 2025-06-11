@@ -399,12 +399,14 @@
             saveButton.disabled = true;
             saveButton.textContent = 'در حال ذخیره...';
             try {
+                const existingProfileData = currentUserData.profile_data || {};
                 const profileUpdates = {
                     name: document.getElementById('profile-name').value.trim(),
                     profile_data: {
+                        ...existingProfileData,
                         height: document.getElementById('profile-height').value || null,
                         weight: document.getElementById('profile-weight').value || null,
-                        birth_date: document.getElementById('profile-birthdate').value || null,
+                        birth_date: $('#profile-birthdate').val() || null,
                     }
                 };
                 if (currentUserData.role === 'client') {
@@ -426,9 +428,12 @@
                 }
                 const { data, error } = await db.from('profiles').update(profileUpdates).eq('id', currentUserData.id).select().single();
                 if (error) throw error;
+                
                 currentUserData = { ...currentUserData, ...data };
+                
                 showToast('پروفایل با موفقیت به‌روز شد!', 'success');
                 await checkAndAwardChallenge('PROFILE_COMPLETE');
+
             } catch (error) {
                 showToast(`خطا: ${error.message}`, 'error');
             } finally {
