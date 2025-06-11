@@ -453,7 +453,7 @@
                 </div>
                 <div class="grid grid-cols-2 gap-4">
                     <div class="card p-4 rounded-xl text-center"><p class="text-4xl font-bold text-[var(--accent-color)]">${streak}</p><p class="text-sm text-[var(--text-color-muted)] mt-1">🔥 زنجیره روزانه</p></div>
-                    <div class="card p-4 rounded-xl text-center"><p class="text-4xl font-bold text-[var(--accent-color)]">${sessionsLeft >= 0 ? sessionsLeft : '-'}</p><p class="text-sm text-[var(--text-color-muted)] mt-1">📅 جلسات باقی‌مانده</p></div>
+                    <div class="card p-4 rounded-xl text-center"><p class="text-4xl font-bold text-[var(--accent-color)]">${sessionsLeft >= 0 ? sessionsLeft : '-'}</span></p><p class="text-sm text-[var(--text-color-muted)] mt-1">📅 جلسات باقی‌مانده</p></div>
                 </div>
                 <div class="card p-6 rounded-xl"><h3 class="text-xl font-bold mb-4">تمرینات امروز (${todayPersian})</h3><div id="daily-workout-list" class="space-y-3"><p class="text-center text-[var(--text-color-muted)] p-4">در حال بارگذاری...</p></div></div>
             `;
@@ -1141,6 +1141,9 @@
             const exerciseCard = checkbox.closest('.card');
             const weightInput = exerciseCard.querySelector('.weight-input');
             
+            // Update UI immediately for better user experience
+            exerciseCard.classList.toggle('opacity-50', isChecked);
+
             const exerciseDetails = {
                 user_id: currentUserData.id,
                 performed_at: new Date().toISOString().split('T')[0],
@@ -1151,44 +1154,55 @@
             };
 
             try {
+                // 1. Log the weight and performance
                 if (isChecked) {
-                    // Log the workout
-                    const { error } = await db.from('workout_logs').upsert(exerciseDetails, {
-                        onConflict: 'user_id,performed_at,exercise_name'
-                    });
+                    const { error } = await db.from('workout_logs').upsert(exerciseDetails, { onConflict: 'user_id,performed_at,exercise_name' });
                     if (error) throw error;
                 } else {
-                    // Remove the log if unchecked
-                    const { error } = await db.from('workout_logs')
-                        .delete()
-                        .match({ 
-                            user_id: exerciseDetails.user_id, 
-                            performed_at: exerciseDetails.performed_at,
-                            exercise_name: exerciseDetails.exercise_name
-                        });
+                    const { error } = await db.from('workout_logs').delete().match({ 
+                        user_id: exerciseDetails.user_id, 
+                        performed_at: exerciseDetails.performed_at,
+                        exercise_name: exerciseDetails.exercise_name
+                    });
                     if (error) throw error;
                 }
 
-                // Update the plan in user's local data
-                if (!currentUserData.plan?.[0]?.plan_data) throw new Error("برنامه ورزشی یافت نشد.");
+                // 2. Update the 'done' status in the main plan JSONB
+                const planRecord = currentUserData.plan[0];
+                if (!planRecord || !planRecord.plan_data) throw new Error("برنامه ورزشی یافت نشد.");
+                
+                const planData = planRecord.plan_data;
                 const today = new Intl.DateTimeFormat('fa-IR', { weekday: 'long' }).format(new Date());
-                const exerciseIndex = currentUserData.plan[0].plan_data.schedule[today].findIndex(ex => ex.name === exerciseDetails.exercise_name);
+
+                const exerciseIndex = planData.schedule[today]?.findIndex(ex => ex.name === exerciseDetails.exercise_name);
                 if (exerciseIndex > -1) {
-                    currentUserData.plan[0].plan_data.schedule[today][exerciseIndex].done = isChecked;
+                    planData.schedule[today][exerciseIndex].done = isChecked;
                 }
+
+                // 3. Persist the updated plan_data to the database
+                const { error: planUpdateError } = await db.from('workout_plans')
+                    .update({ plan_data: planData })
+                    .eq('client_id', currentUserData.id);
+
+                if (planUpdateError) throw planUpdateError;
                 
-                exerciseCard.classList.toggle('opacity-50', isChecked);
-                
-                // Finally, check if the whole day is complete to update streak
-                const allDone = currentUserData.plan[0].plan_data.schedule[today].every(ex => ex.done);
-                if (allDone) await updateSessionAndStreak();
+                // Update local cache
+                currentUserData.plan[0].plan_data = planData;
+
+                // 4. Check if the day is complete
+                const allDone = planData.schedule[today].every(ex => ex.done === true);
+                if (allDone) {
+                    await updateSessionAndStreak();
+                }
 
             } catch (error) {
                 showToast(`خطا در ذخیره وضعیت تمرین: ${error.message}`, 'error');
-                checkbox.checked = !isChecked; // Revert checkbox on error
+                // Revert UI on error
+                checkbox.checked = !isChecked; 
                 exerciseCard.classList.toggle('opacity-50', !isChecked);
             }
         }
+
         
         async function checkAndAwardChallenge(type, value = null) {
             try {
@@ -1433,4 +1447,3 @@
     </script>
 </body>
 </html>
-
