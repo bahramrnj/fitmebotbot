@@ -7,13 +7,17 @@
 
     <!-- PWA & Add to Home Screen -->
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#f59e0b">
+    <meta name="theme-color" content="#D32F2F">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <link rel="apple-touch-icon" href="https://placehold.co/180x180/0d1117/f59e0b?text=FP">
+    <link rel="apple-touch-icon" href="https://placehold.co/180x180/D32F2F/ffffff?text=FP">
 
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700&family=Roboto+Mono&family=Vazirmatn:wght@400;500;700&display=swap" rel="stylesheet">
+    
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <!-- Chart.js for graphs -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -31,44 +35,49 @@
         :root[data-theme="dark"] {
             --bg-color: #0d1117;
             --text-color: #e6edf3;
-            --text-color-muted: #848d97;
-            --card-bg: rgba(22, 27, 34, 0.8);
+            --text-color-muted: #A0AEC0;
+            --card-bg: rgba(31, 42, 51, 0.9);
             --card-border: rgba(48, 54, 61, 0.8);
-            --accent-color: #f59e0b;
-            --accent-color-hover: #d97706;
-            --accent-text-color: #111827;
+            --accent-color: #D32F2F;
+            --accent-color-hover: #B71C1C;
+            --accent-text-color: #ffffff;
             --input-bg: #161b22;
             --input-border: #30363d;
-            --success-color: #2ea043;
-            --success-bg: rgba(46, 160, 67, 0.15);
+            --success-color: #00E676;
+            --success-bg: rgba(0, 230, 118, 0.15);
+            --danger-color: #B91C1C;
         }
         :root[data-theme="light"] {
             --bg-color: #f9fafb;
             --text-color: #1f2937;
             --text-color-muted: #6b7280;
-            --card-bg: rgba(255, 255, 255, 0.8);
+            --card-bg: rgba(255, 255, 255, 0.9);
             --card-border: #e5e7eb;
-            --accent-color: #1d4ed8;
-            --accent-color-hover: #1e40af;
+            --accent-color: #00D1B2;
+            --accent-color-hover: #009688;
             --accent-text-color: #ffffff;
             --input-bg: #ffffff;
             --input-border: #d1d5db;
-            --success-color: #16a34a;
-            --success-bg: rgba(22, 163, 74, 0.1);
+            --success-color: #00E676;
+            --success-bg: rgba(0, 230, 118, 0.1);
+            --danger-color: #D32F2F;
         }
         html { scroll-behavior: smooth; }
-        body { font-family: 'Vazirmatn', sans-serif; background-color: var(--bg-color); color: var(--text-color); transition: background-color 0.3s, color 0.3s; padding-bottom: 6rem; }
+        body { font-family: 'Vazirmatn', sans-serif; background-color: var(--bg-color); color: var(--text-color); transition: background-color 0.3s, color 0.3s; padding-bottom: 6rem; background-image: radial-gradient(var(--card-border) 1px, transparent 1px); background-size: 20px 20px; }
+        h1, h2, h3, h4, h5, h6, #view-title { font-family: 'Montserrat', 'Vazirmatn', sans-serif; }
+        .font-mono { font-family: 'Roboto Mono', monospace; }
         .card { background-color: var(--card-bg); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid var(--card-border); transition: all 0.3s; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1); }
         .btn { padding: 0.75rem 1.5rem; border-radius: 0.75rem; font-weight: 700; transition: all 0.2s ease-in-out; }
-        .btn-primary { background-color: var(--accent-color); color: var(--accent-text-color); }
-        .btn-primary:hover { background-color: var(--accent-color-hover); transform: translateY(-2px); }
+        .btn-primary { background: linear-gradient(to right, var(--accent-color), var(--accent-color-hover)); color: var(--accent-text-color); }
+        .btn-primary:hover { transform: translateY(-2px) scale(1.05); box-shadow: 0 10px 15px -3px color-mix(in srgb, var(--accent-color) 25%, transparent); }
         .btn-secondary { background-color: var(--text-color-muted); color: var(--bg-color); }
         .btn-secondary:hover { opacity: 0.8; }
         .input-base { background-color: var(--input-bg); color: var(--text-color); border: 1px solid var(--input-border); transition: border-color 0.2s; }
         .input-base:focus { outline: none; border-color: var(--accent-color); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-color) 20%, transparent); }
-        .input-base:disabled { opacity: 0.7; cursor: not-allowed; }
+        .input-base:disabled { background-color: #9CA3AF; opacity: 0.5; cursor: not-allowed; }
         .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background-color: var(--card-bg); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border-top: 1px solid var(--card-border); z-index: 50; }
-        .nav-btn { color: var(--text-color-muted); }
+        .nav-btn { color: var(--text-color-muted); transition: all 0.2s; }
+        .nav-btn:hover { transform: scale(1.1); }
         .nav-btn.active { color: var(--accent-color); transform: translateY(-4px); }
         .hidden { display: none; }
         .toast { position: fixed; bottom: -100px; left: 50%; transform: translateX(-50%); padding: 12px 24px; border-radius: 8px; color: white; z-index: 1000; opacity: 0; transition: all 0.4s ease-in-out; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
@@ -77,8 +86,8 @@
         details > summary { list-style: none; }
         details > summary::-webkit-details-marker { display: none; }
         details[open] summary .accordion-icon { transform: rotate(90deg); }
-        .spinner { border: 4px solid rgba(255, 255, 255, 0.3); border-radius: 50%; border-top: 4px solid var(--accent-color); width: 50px; height: 50px; animation: spin 1s linear infinite; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .heartbeat-spinner { width: 50px; height: 50px; position: relative; background: var(--accent-color); mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23000'%3E%3Cpath d='M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z'/%3E%3C/svg%3E") no-repeat center; mask-size: contain; -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23000'%3E%3Cpath d='M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z'/%3E%3C/svg%3E") no-repeat center; -webkit-mask-size: contain; animation: heartbeat 1.5s ease-in-out infinite; }
+        @keyframes heartbeat { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.2); } }
         /* Persian Datepicker Dark Theme */
         .pwt-btn-today, .pwt-btn-switch, .pwt-btn-close { color: var(--text-color) !important; }
         .datepicker-plot-area { background-color: var(--card-bg) !important; border: 1px solid var(--card-border) !important; }
@@ -94,8 +103,8 @@
     <div id="app-container" class="container mx-auto p-4 max-w-lg min-h-screen flex flex-col">
 
         <div id="loading-view" class="flex flex-col items-center justify-center flex-grow">
-            <svg class="animate-spin h-8 w-8 text-[var(--accent-color)]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-            <p id="loading-text" class="mt-2 text-[var(--text-color-muted)]">در حال بارگذاری...</p>
+            <div class="heartbeat-spinner"></div>
+            <p id="loading-text" class="mt-4 text-[var(--text-color-muted)]">در حال بارگذاری...</p>
         </div>
 
         <div id="auth-view" class="hidden flex-grow flex flex-col justify-center">
@@ -154,7 +163,7 @@
             <span class="text-xs font-medium">خانه</span>
         </button>
         <button data-view="challenges-view" class="nav-btn flex flex-col items-center gap-1 transition-all w-20">
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5C7 4 8 9 8 9"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5c-2.5 0-3.5 5-3.5 5"/><path d="M12 12V2"/><path d="M6 12H2a1 1 0 0 0-1 1v3a1 1 0 0 0 1 1h4"/><path d="M18 12h4a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-4"/><path d="M6 22h12c.33 0 .65-.17.83-.46.17-.3.17-.67 0-.97-.17-.3-.5-.47-.83-.47H6c-.33 0-.65.17-.83.46-.17.3-.17.67 0 .97.17.3.5.47.83.47z"/></svg>
             <span class="text-xs font-medium">چالش‌ها</span>
         </button>
     </nav>
@@ -758,7 +767,7 @@
                         <div>
                              <button id="save-profile-btn" class="w-full btn-primary font-bold py-3 rounded-lg mt-4">ذخیره تغییرات</button>
                         </div>
-                        <div class="border-t border-red-500/30 mt-6 pt-4">
+                        <div class="hidden border-t border-red-500/30 mt-6 pt-4">
                              <button id="delete-account-btn" class="w-full bg-red-600/20 text-red-400 font-bold py-3 rounded-lg">حذف حساب کاربری</button>
                         </div>
                     </div>
