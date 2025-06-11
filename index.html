@@ -377,25 +377,28 @@
                 return;
             }
 
-            // Fetch logs for today to pre-fill weights
+            // Fetch logs for today to pre-fill weights and done status
             const todayISO = new Date().toISOString().split('T')[0];
             const { data: todayLogs, error } = await db.from('workout_logs')
                 .select('exercise_name, weight')
                 .eq('user_id', currentUserData.id)
                 .eq('performed_at', todayISO);
-            
-            const weightMap = new Map((todayLogs || []).map(log => [log.exercise_name, log.weight]));
+
+            const loggedExercises = new Map((todayLogs || []).map(log => [log.exercise_name, log]));
             
             workoutListEl.innerHTML = todaysWorkout.map((ex, i) => {
-                const weight = weightMap.get(ex.name) || '';
+                const log = loggedExercises.get(ex.name);
+                const weight = log?.weight || '';
+                const isDone = !!log;
+                
                 return `
-                <div class="card p-4 space-y-2">
+                <div class="card p-4 space-y-2 ${isDone ? 'opacity-50' : ''}">
                     <div class="flex items-center justify-between">
                         <div>
                             <p class="font-semibold">${ex.name}</p>
                             <p class="text-sm text-[var(--text-color-muted)]">${ex.sets} ست × ${ex.reps} تکرار</p>
                         </div>
-                        <input type="checkbox" data-exercise-name="${ex.name}" data-sets="${ex.sets}" data-reps="${ex.reps}" class="exercise-checkbox w-6 h-6 rounded bg-gray-700 border-gray-600 text-[var(--accent-color)] focus:ring-[var(--accent-color)]" ${ex.done ? 'checked' : ''}>
+                        <input type="checkbox" data-exercise-name="${ex.name}" data-sets="${ex.sets}" data-reps="${ex.reps}" class="exercise-checkbox w-6 h-6 rounded bg-gray-700 border-gray-600 text-[var(--accent-color)] focus:ring-[var(--accent-color)]" ${isDone ? 'checked' : ''}>
                     </div>
                     <div class="flex items-center gap-2">
                          <label for="weight-input-${i}" class="text-sm text-[var(--text-color-muted)]">وزنه (kg):</label>
@@ -1167,30 +1170,14 @@
                     if (error) throw error;
                 }
 
-                // 2. Update the 'done' status in the main plan JSONB
-                const planRecord = currentUserData.plan[0];
-                if (!planRecord || !planRecord.plan_data) throw new Error("برنامه ورزشی یافت نشد.");
-                
-                const planData = planRecord.plan_data;
+                // 2. Check if the day is complete
                 const today = new Intl.DateTimeFormat('fa-IR', { weekday: 'long' }).format(new Date());
+                const todaysExercises = currentUserData.plan[0].plan_data.schedule[today];
 
-                const exerciseIndex = planData.schedule[today]?.findIndex(ex => ex.name === exerciseDetails.exercise_name);
-                if (exerciseIndex > -1) {
-                    planData.schedule[today][exerciseIndex].done = isChecked;
-                }
+                // Get all checkboxes for today to check their status
+                const allCheckboxes = document.querySelectorAll('#daily-workout-list .exercise-checkbox');
+                const allDone = Array.from(allCheckboxes).every(cb => cb.checked);
 
-                // 3. Persist the updated plan_data to the database
-                const { error: planUpdateError } = await db.from('workout_plans')
-                    .update({ plan_data: planData })
-                    .eq('client_id', currentUserData.id);
-
-                if (planUpdateError) throw planUpdateError;
-                
-                // Update local cache
-                currentUserData.plan[0].plan_data = planData;
-
-                // 4. Check if the day is complete
-                const allDone = planData.schedule[today].every(ex => ex.done === true);
                 if (allDone) {
                     await updateSessionAndStreak();
                 }
