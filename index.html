@@ -2,7 +2,7 @@
 <html lang="fa" dir="rtl" data-theme="dark">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>FitPlan - برنامه ورزشی شما</title>
 
     <!-- PWA & Add to Home Screen -->
@@ -29,26 +29,45 @@
     
     <style>
         :root[data-theme="dark"] {
-            --bg-color: #0d1117; --text-color: #e6edf3; --text-color-muted: #7d8590;
-            --card-bg: rgba(22, 27, 34, 0.7); --card-border: rgba(255, 255, 255, 0.1);
-            --accent-color: #f59e0b; --accent-text-color: #111827;
-            --input-bg: #161b22; --input-border: #30363d;
-            --success-color: #2ea043; --success-bg: rgba(46, 160, 67, 0.1);
+            --bg-color: #0d1117;
+            --text-color: #e6edf3;
+            --text-color-muted: #848d97;
+            --card-bg: rgba(22, 27, 34, 0.8);
+            --card-border: rgba(48, 54, 61, 0.8);
+            --accent-color: #f59e0b;
+            --accent-color-hover: #d97706;
+            --accent-text-color: #111827;
+            --input-bg: #161b22;
+            --input-border: #30363d;
+            --success-color: #2ea043;
+            --success-bg: rgba(46, 160, 67, 0.15);
         }
         :root[data-theme="light"] {
-            --bg-color: #f3f4f6; --text-color: #111827; --text-color-muted: #6b7280;
-            --card-bg: rgba(255, 255, 255, 0.8); --card-border: #d1d5db;
-            --accent-color: #2563eb; --accent-text-color: #ffffff;
-            --input-bg: #ffffff; --input-border: #d1d5db;
-            --success-color: #16a34a; --success-bg: rgba(22, 163, 74, 0.1);
+            --bg-color: #f9fafb;
+            --text-color: #1f2937;
+            --text-color-muted: #6b7280;
+            --card-bg: rgba(255, 255, 255, 0.8);
+            --card-border: #e5e7eb;
+            --accent-color: #1d4ed8;
+            --accent-color-hover: #1e40af;
+            --accent-text-color: #ffffff;
+            --input-bg: #ffffff;
+            --input-border: #d1d5db;
+            --success-color: #16a34a;
+            --success-bg: rgba(22, 163, 74, 0.1);
         }
-        body { font-family: 'Vazirmatn', sans-serif; background-color: var(--bg-color); color: var(--text-color); transition: background-color 0.3s, color 0.3s; padding-bottom: 5rem; }
-        .card { background-color: var(--card-bg); backdrop-filter: blur(12px); border: 1px solid var(--card-border); transition: all 0.3s; }
+        html { scroll-behavior: smooth; }
+        body { font-family: 'Vazirmatn', sans-serif; background-color: var(--bg-color); color: var(--text-color); transition: background-color 0.3s, color 0.3s; padding-bottom: 6rem; }
+        .card { background-color: var(--card-bg); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid var(--card-border); transition: all 0.3s; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1); }
+        .btn { padding: 0.75rem 1.5rem; border-radius: 0.75rem; font-weight: 700; transition: all 0.2s ease-in-out; }
         .btn-primary { background-color: var(--accent-color); color: var(--accent-text-color); }
+        .btn-primary:hover { background-color: var(--accent-color-hover); transform: translateY(-2px); }
         .btn-secondary { background-color: var(--text-color-muted); color: var(--bg-color); }
-        .input-base { background-color: var(--input-bg); color: var(--text-color); border: 1px solid var(--input-border); }
+        .btn-secondary:hover { opacity: 0.8; }
+        .input-base { background-color: var(--input-bg); color: var(--text-color); border: 1px solid var(--input-border); transition: border-color 0.2s; }
+        .input-base:focus { outline: none; border-color: var(--accent-color); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-color) 20%, transparent); }
         .input-base:disabled { opacity: 0.7; cursor: not-allowed; }
-        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background-color: var(--card-bg); backdrop-filter: blur(12px); border-top: 1px solid var(--card-border); z-index: 50; }
+        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background-color: var(--card-bg); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border-top: 1px solid var(--card-border); z-index: 50; }
         .nav-btn { color: var(--text-color-muted); }
         .nav-btn.active { color: var(--accent-color); transform: translateY(-4px); }
         .hidden { display: none; }
@@ -170,8 +189,10 @@
         <div class="card rounded-xl p-2 w-full max-w-lg space-y-2 flex flex-col">
             <button id="view-client-performance-btn" class="w-full text-right p-3 hover:bg-[var(--input-bg)] rounded-lg">مشاهده گزارش عملکرد</button>
             <button id="edit-client-plan-btn" class="w-full text-right p-3 hover:bg-[var(--input-bg)] rounded-lg">ویرایش برنامه تمرینی</button>
-             <hr class="border-[var(--card-border)]">
-            <button id="cancel-client-action-btn" class="w-full text-right p-3 text-red-500 hover:bg-[var(--input-bg)] rounded-lg">لغو</button>
+             <hr class="border-[var(--card-border)] my-1">
+            <button id="remove-client-btn" class="w-full text-right p-3 text-red-500 hover:bg-[var(--input-bg)] rounded-lg">حذف شاگرد</button>
+            <hr class="border-[var(--card-border)] my-1">
+            <button id="cancel-client-action-btn" class="w-full text-right p-3 hover:bg-[var(--input-bg)] rounded-lg">بستن</button>
         </div>
     </div>
 
@@ -182,19 +203,15 @@
         <img id="large-avatar-img" src="" alt="عکس پروفایل در اندازه بزرگ" class="max-w-full max-h-full object-contain rounded-lg">
     </div>
 
-    <!-- Delete Account Confirmation Modal -->
-    <div id="delete-confirm-modal" class="hidden fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-[100] p-4">
+    <!-- Generic Confirmation Modal -->
+    <div id="generic-confirm-modal" class="hidden fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-[100] p-4">
         <div class="card rounded-xl p-6 w-full max-w-lg space-y-4 flex flex-col items-center text-center">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-            </svg>
-            <h3 class="text-xl font-bold">آیا مطمئن هستید؟</h3>
-            <p class="text-sm text-[var(--text-color-muted)]">
-                این عملیات غیرقابل بازگشت است. با حذف حساب کاربری، تمام اطلاعات شما شامل پروفایل، برنامه‌های ورزشی و گزارشات برای همیشه پاک خواهد شد.
-            </p>
+            <div id="confirm-modal-icon"></div>
+            <h3 id="confirm-modal-title" class="text-xl font-bold"></h3>
+            <p id="confirm-modal-message" class="text-sm text-[var(--text-color-muted)]"></p>
             <div class="flex gap-4 w-full pt-4 mt-4 border-t border-[var(--input-border)]">
-                <button id="cancel-delete-btn" type="button" class="w-1/2 btn-secondary font-bold py-2 rounded-lg">انصراف</button>
-                <button id="confirm-delete-btn" type="button" class="w-1/2 bg-red-600 text-white font-bold py-2 rounded-lg">بله، حذف کن</button>
+                <button id="cancel-confirm-btn" type="button" class="w-1/2 btn-secondary font-bold py-2 rounded-lg">انصراف</button>
+                <button id="confirm-action-btn" type="button" class="w-1/2 font-bold py-2 rounded-lg">تایید</button>
             </div>
         </div>
     </div>
@@ -225,7 +242,7 @@
             largeAvatarImg: document.getElementById('large-avatar-img'),
             closeImageViewerBtn: document.getElementById('close-image-viewer'),
             clientActionModal: document.getElementById('client-action-modal'),
-            deleteConfirmModal: document.getElementById('delete-confirm-modal'),
+            genericConfirmModal: document.getElementById('generic-confirm-modal'),
         };
 
         let currentUserData = null;
@@ -234,6 +251,7 @@
         let referrerId = null;
         let performanceChart = null; // To hold the chart instance
         let trainerExerciseSuggestions = [];
+        let confirmAction = { type: null, targetId: null, confirmText: 'تایید', btnClass: 'btn-primary' };
         // ** IMPORTANT: Paste the Base64 string of your font here **
         const vazirmatnFontBase64 = 'PASTE_YOUR_BASE64_FONT_STRING_HERE';
         
@@ -688,6 +706,7 @@
                                 ${trainerAgeText ? `<p class="text-sm text-[var(--text-color-muted)]">${trainerAgeText}</p>` : ''}
                             </div>
                         </div>
+                        <button id="remove-trainer-btn" class="text-xs text-red-500 hover:underline mt-2 w-full text-right">قطع ارتباط با مربی</button>
                     </div>
                 `;
             }
@@ -837,6 +856,12 @@
                 const selectedExercise = document.getElementById('exercise-select').value;
                 const chartData = logs.filter(log => log.exercise_name === selectedExercise && log.weight);
                 
+                const accentColor = getComputedStyle(document.documentElement).getPropertyValue('--accent-color');
+                const gradient = chartCtx.createLinearGradient(0, 0, 0, 400);
+                gradient.addColorStop(0, `${accentColor}80`); // 50% opacity
+                gradient.addColorStop(1, `${accentColor}00`); // 0% opacity
+
+
                 performanceChart = new Chart(chartCtx, {
                     type: 'line',
                     data: {
@@ -844,13 +869,18 @@
                         datasets: [{
                             label: `روند وزنه برای ${selectedExercise}`,
                             data: chartData.map(log => log.weight),
-                            borderColor: 'var(--accent-color)',
-                            backgroundColor: 'rgba(245, 158, 11, 0.2)',
-                            tension: 0.1,
+                            borderColor: accentColor,
+                            backgroundColor: gradient,
+                            tension: 0.2,
                             fill: true,
+                            pointBackgroundColor: accentColor,
+                            pointRadius: 4,
+                            pointHoverRadius: 6,
                         }]
                     },
                     options: {
+                        responsive: true,
+                        maintainAspectRatio: true,
                         scales: {
                             x: {
                                 type: 'time',
@@ -861,18 +891,27 @@
                                         day: 'MM/dd'
                                     }
                                 },
-                                ticks: { color: 'var(--text-color-muted)' },
+                                ticks: { color: 'var(--text-color-muted)', font: { family: 'Vazirmatn' } },
                                 grid: { color: 'var(--input-border)' }
                             },
                             y: {
                                 beginAtZero: true,
-                                ticks: { color: 'var(--text-color-muted)' },
+                                ticks: { color: 'var(--text-color-muted)', font: { family: 'Vazirmatn' } },
                                 grid: { color: 'var(--input-border)' }
                             }
                         },
                         plugins: {
                             legend: {
-                                labels: { color: 'var(--text-color)' }
+                                display: false,
+                            },
+                            tooltip: {
+                                rtl: true,
+                                titleFont: { family: 'Vazirmatn' },
+                                bodyFont: { family: 'Vazirmatn' },
+                                callbacks: {
+                                    title: (context) => new Date(context[0].parsed.x).toLocaleDateString('fa-IR'),
+                                    label: (context) => `وزنه: ${context.parsed.y} کیلوگرم`
+                                }
                             }
                         }
                     }
@@ -1200,10 +1239,6 @@
                 }
                 
                 // 2. Check if the day is complete
-                const today = new Intl.DateTimeFormat('fa-IR', { weekday: 'long' }).format(new Date());
-                const todaysExercises = currentUserData.plan[0].plan_data.schedule[today];
-
-                // Get all checkboxes for today to check their status
                 const allCheckboxes = document.querySelectorAll('#daily-workout-list .exercise-checkbox');
                 const allDone = Array.from(allCheckboxes).every(cb => cb.checked);
 
@@ -1254,10 +1289,6 @@
         }
         
         async function deleteAccount() {
-            const confirmBtn = document.getElementById('confirm-delete-btn');
-            confirmBtn.disabled = true;
-            confirmBtn.innerHTML = '<div class="spinner h-5 w-5 mx-auto"></div>';
-
             try {
                 const { error } = await db.rpc('delete_user_account');
                 if (error) throw error;
@@ -1266,11 +1297,58 @@
                 await db.auth.signOut();
                 
             } catch (error) {
-                showToast(`خطا در حذف حساب: ${error.message}`, 'error');
-                confirmBtn.disabled = false;
-                confirmBtn.textContent = 'بله، حذف کن';
+                throw error;
+            }
+        }
+        
+        async function unlinkClient(clientId) {
+            try {
+                const { error } = await db.rpc('unlink_client_trainer', { p_client_id: clientId });
+                if (error) throw error;
+                showToast('ارتباط با موفقیت قطع شد.', 'success');
+            } catch(error) {
+                 throw error;
+            }
+        }
+
+        function showConfirmationModal(type, targetId, title, message, iconHTML, btnClass, confirmText) {
+            confirmAction = { type, targetId };
+            document.getElementById('confirm-modal-title').textContent = title;
+            document.getElementById('confirm-modal-message').innerHTML = message;
+            document.getElementById('confirm-modal-icon').innerHTML = iconHTML;
+            const confirmBtn = document.getElementById('confirm-action-btn');
+            confirmBtn.textContent = confirmText;
+            confirmBtn.className = `w-1/2 font-bold py-2 rounded-lg ${btnClass}`;
+            dom.genericConfirmModal.classList.remove('hidden');
+        }
+
+        async function handleConfirmAction() {
+            const { type, targetId } = confirmAction;
+            const confirmBtn = document.getElementById('confirm-action-btn');
+            confirmBtn.disabled = true;
+            confirmBtn.innerHTML = '<div class="spinner h-5 w-5 mx-auto"></div>';
+
+            try {
+                switch (type) {
+                    case 'delete_account':
+                        await deleteAccount();
+                        break;
+                    case 'remove_client':
+                        await unlinkClient(targetId);
+                        renderTrainerDashboard();
+                        break;
+                    case 'remove_trainer':
+                        await unlinkClient(currentUserData.id);
+                        const { data: { user } } = await db.auth.getUser();
+                        await loadAppData(user);
+                        renderProfileView();
+                        break;
+                }
+            } catch (error) {
+                showToast(`خطا: ${error.message}`, 'error');
             } finally {
-                dom.deleteConfirmModal.classList.add('hidden');
+                dom.genericConfirmModal.classList.add('hidden');
+                confirmBtn.disabled = false;
             }
         }
 
@@ -1420,6 +1498,29 @@
                     dom.clientActionModal.classList.add('hidden');
                     renderPerformanceView(currentEditingClient.id, currentEditingClient.name);
                 }
+                if (target.id === 'remove-client-btn') {
+                     dom.clientActionModal.classList.add('hidden');
+                     showConfirmationModal(
+                        'remove_client',
+                        currentEditingClient.id,
+                        'حذف شاگرد',
+                        `آیا از حذف شاگرد "${currentEditingClient.name}" مطمئن هستید؟`,
+                        `<svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>`,
+                        'bg-red-600 text-white',
+                        'بله، حذف کن'
+                    );
+                }
+                 if (target.id === 'remove-trainer-btn') {
+                    showConfirmationModal(
+                        'remove_trainer',
+                        currentUserData.id,
+                        'قطع ارتباط با مربی',
+                        'آیا از قطع ارتباط با مربی خود مطمئن هستید؟',
+                        `<svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>`,
+                        'bg-red-600 text-white',
+                        'بله، قطع ارتباط'
+                    );
+                }
                 if (target.classList.contains('add-exercise-btn')) addExerciseInput(target.previousElementSibling);
                 if (target.classList.contains('remove-exercise-btn')) target.closest('.exercise-item').remove();
                 if (target.closest('#customer-club-banner')) renderRewardsView();
@@ -1435,14 +1536,22 @@
                 if (e.target === dom.imageViewerModal || target === dom.closeImageViewerBtn) {
                     dom.imageViewerModal.classList.add('hidden');
                 }
-                 if (e.target === dom.deleteConfirmModal || target.id === 'cancel-delete-btn') {
-                    dom.deleteConfirmModal.classList.add('hidden');
+                 if (e.target === dom.genericConfirmModal || target.id === 'cancel-confirm-btn') {
+                    dom.genericConfirmModal.classList.add('hidden');
                 }
-                if (target.id === 'confirm-delete-btn') {
-                    deleteAccount();
+                if (target.id === 'confirm-action-btn') {
+                    handleConfirmAction();
                 }
                 if (target.id === 'delete-account-btn') {
-                    dom.deleteConfirmModal.classList.remove('hidden');
+                     showConfirmationModal(
+                        'delete_account',
+                        null,
+                        'حذف حساب کاربری',
+                        'این عملیات غیرقابل بازگشت است. تمام اطلاعات شما برای همیشه پاک خواهد شد. آیا مطمئن هستید؟',
+                        `<svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>`,
+                        'bg-red-600 text-white',
+                        'بله، حذف کن'
+                    );
                 }
                 if (target.id === 'print-daily-plan-btn') {
                     generateDailyPlanPDF();
