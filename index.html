@@ -156,6 +156,17 @@
             </div>
         </form>
     </div>
+    
+    <!-- Client Action Modal -->
+    <div id="client-action-modal" class="hidden fixed inset-0 bg-black bg-opacity-70 flex justify-center items-end sm:items-center z-50 p-4">
+        <div class="card rounded-xl p-2 w-full max-w-lg space-y-2 flex flex-col">
+            <button id="view-client-performance-btn" class="w-full text-right p-3 hover:bg-[var(--input-bg)] rounded-lg">مشاهده گزارش عملکرد</button>
+            <button id="edit-client-plan-btn" class="w-full text-right p-3 hover:bg-[var(--input-bg)] rounded-lg">ویرایش برنامه تمرینی</button>
+             <hr class="border-[var(--card-border)]">
+            <button id="cancel-client-action-btn" class="w-full text-right p-3 text-red-500 hover:bg-[var(--input-bg)] rounded-lg">لغو</button>
+        </div>
+    </div>
+
 
     <!-- Image Viewer Modal -->
     <div id="image-viewer-modal" class="hidden fixed inset-0 bg-black bg-opacity-80 flex justify-center items-center z-[100] p-4 cursor-pointer">
@@ -187,7 +198,8 @@
             logoutBtn: document.getElementById('logout-btn'),
             imageViewerModal: document.getElementById('image-viewer-modal'),
             largeAvatarImg: document.getElementById('large-avatar-img'),
-            closeImageViewerBtn: document.getElementById('close-image-viewer')
+            closeImageViewerBtn: document.getElementById('close-image-viewer'),
+            clientActionModal: document.getElementById('client-action-modal'),
         };
 
         let currentUserData = null;
@@ -196,8 +208,8 @@
         let referrerId = null;
         let performanceChart = null; // To hold the chart instance
         let trainerExerciseSuggestions = [];
-        // Base64 for Vazirmatn font to support Persian in jsPDF
-        const vazirmatnFontBase64 = 'AAEAAAARAQAABAAQR0RFRg...'; // This is a placeholder for the actual very long base64 string
+        // ** IMPORTANT: Paste the Base64 string of your font here **
+        const vazirmatnFontBase64 = 'PASTE_YOUR_BASE64_FONT_STRING_HERE';
         
         const sunIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>`;
         const moonIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>`;
@@ -271,19 +283,22 @@
         }
 
         // Helper for reversing Persian text for jsPDF
-        const reverseText = (text) => text.split('').reverse().join('');
+        const reverseText = (text) => (text || '').toString().split('').reverse().join('');
 
         async function generatePerformanceReportPDF(logs, userName) {
             const doc = new jsPDF();
-            // This is a placeholder for a real Base64 font. In a real app, this would be a very long string.
-            // For now, it will use a standard font, which won't render Persian correctly.
-            // doc.addFileToVFS('Vazirmatn-Regular.ttf', vazirmatnFontBase64);
-            // doc.addFont('Vazirmatn-Regular.ttf', 'Vazirmatn', 'normal');
-            // doc.setFont('Vazirmatn');
+            
+            if(vazirmatnFontBase64.startsWith('PASTE_')){
+                showToast('فونت برای ساخت PDF تنظیم نشده است.', 'error');
+                return;
+            }
+            doc.addFileToVFS('Vazirmatn-Regular.ttf', vazirmatnFontBase64);
+            doc.addFont('Vazirmatn-Regular.ttf', 'Vazirmatn', 'normal');
+            doc.setFont('Vazirmatn');
 
             doc.text(reverseText(`گزارش عملکرد برای: ${userName}`), 105, 15, { align: 'center' });
             
-            const tableColumn = ["وزنه (kg)", "حرکت", "تاریخ"];
+            const tableColumn = [reverseText("وزنه (kg)"), reverseText("حرکت"), reverseText("تاریخ")];
             const tableRows = [];
 
             logs.forEach(log => {
@@ -299,11 +314,11 @@
                 head: [tableColumn],
                 body: tableRows,
                 startY: 20,
-                headStyles: { halign: 'center', font: 'Vazirmatn' },
-                bodyStyles: { halign: 'center', font: 'Vazirmatn' }
+                styles: { font: 'Vazirmatn', halign: 'center' },
+                headStyles: { halign: 'center' },
             });
 
-            doc.save(`report_${userName}.pdf`);
+            doc.save(`report_${userName.replace(/ /g, '_')}.pdf`);
         }
 
         async function generateDailyPlanPDF() {
@@ -317,13 +332,17 @@
             const todaysWorkout = plan.schedule[today];
 
             const doc = new jsPDF();
-            // doc.addFileToVFS('Vazirmatn-Regular.ttf', vazirmatnFontBase64);
-            // doc.addFont('Vazirmatn-Regular.ttf', 'Vazirmatn', 'normal');
-            // doc.setFont('Vazirmatn');
+             if(vazirmatnFontBase64.startsWith('PASTE_')){
+                showToast('فونت برای ساخت PDF تنظیم نشده است.', 'error');
+                return;
+            }
+            doc.addFileToVFS('Vazirmatn-Regular.ttf', vazirmatnFontBase64);
+            doc.addFont('Vazirmatn-Regular.ttf', 'Vazirmatn', 'normal');
+            doc.setFont('Vazirmatn');
 
             doc.text(reverseText(`برنامه تمرین امروز - ${today}`), 105, 15, { align: 'center' });
 
-            const tableColumn = ["تکرار", "ست", "حرکت"];
+            const tableColumn = [reverseText("تکرار"), reverseText("ست"), reverseText("حرکت")];
             const tableRows = todaysWorkout.map(ex => [
                 ex.reps,
                 ex.sets,
@@ -334,8 +353,8 @@
                 head: [tableColumn],
                 body: tableRows,
                 startY: 20,
-                headStyles: { halign: 'center', font: 'Vazirmatn' },
-                bodyStyles: { halign: 'center', font: 'Vazirmatn' }
+                styles: { font: 'Vazirmatn', halign: 'center' },
+                headStyles: { halign: 'center' },
             });
 
             doc.save(`plan_${new Date().toISOString().split('T')[0]}.pdf`);
@@ -495,6 +514,7 @@
 
                     const clientCard = document.createElement('div');
                     clientCard.className = 'card p-3 cursor-pointer hover:border-[var(--accent-color)] flex justify-between items-center';
+                    clientCard.dataset.client = JSON.stringify(client); // Store client data on the element
                     clientCard.innerHTML = `
                         <div class="flex items-center gap-4">
                             <img src="${avatarUrl}" alt="[عکس پروفایل ${client.name}]" class="w-10 h-10 rounded-full object-cover">
@@ -505,7 +525,10 @@
                         </div>
                         <span class="text-sm text-[var(--text-color-muted)]">جلسات باقی‌مانده: <span class="font-bold text-[var(--text-color)]">${sessionsLeft >= 0 ? sessionsLeft : '-'}</span></span>
                     `;
-                    clientCard.addEventListener('click', () => openPlanModal(client));
+                    clientCard.addEventListener('click', () => {
+                        currentEditingClient = client;
+                        dom.clientActionModal.classList.remove('hidden');
+                    });
                     clientListEl.appendChild(clientCard);
                 });
 
@@ -1331,7 +1354,18 @@
                     const linkInput = document.getElementById('referral-link-input');
                     navigator.clipboard.writeText(linkInput.value).then(() => showToast('لینک معرف کپی شد!', 'success'), () => showToast('خطا در کپی کردن لینک.', 'error'));
                 }
-                if (target.id === 'cancel-plan-btn') document.getElementById('plan-modal').classList.add('hidden');
+                if (target.id === 'cancel-plan-btn' || target.id === 'cancel-client-action-btn' ) {
+                    dom.clientActionModal.classList.add('hidden');
+                    document.getElementById('plan-modal').classList.add('hidden');
+                }
+                if (target.id === 'edit-client-plan-btn') {
+                    dom.clientActionModal.classList.add('hidden');
+                    openPlanModal(currentEditingClient);
+                }
+                 if (target.id === 'view-client-performance-btn') {
+                    dom.clientActionModal.classList.add('hidden');
+                    renderPerformanceView(currentEditingClient.id, currentEditingClient.name);
+                }
                 if (target.classList.contains('add-exercise-btn')) addExerciseInput(target.previousElementSibling);
                 if (target.classList.contains('remove-exercise-btn')) target.closest('.exercise-item').remove();
                 if (target.closest('#customer-club-banner')) renderRewardsView();
